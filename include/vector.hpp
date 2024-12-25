@@ -1,32 +1,33 @@
 #pragma once
 
-#include <cstddef>
-#include <stdexcept>
+#include "def.hpp"
 
-template <typename T> class Vector {
+namespace nstd {
+
+template <class T>
+class Vector {
 private:
-  T *data;
-  std::size_t capacity;
+  T*_data;
+  T* _start;
+  T* _end;
+  nstd::size_t capacity;
 
 public:
-  explicit Vector(std::size_t initial_capacity = 10)
-      : data(new T[initial_capacity]), capacity(initial_capacity) {}
+  using value_type = T;
 
-  ~Vector() { delete[] data; }
+  explicit Vector(nstd::size_t initial_capacity = 16)
+      : _data(new T[initial_capacity]), capacity(initial_capacity) {}
 
-  T &operator[](std::size_t index) {
-    if (index >= capacity) {
-      throw std::out_of_range("Index out of bounds");
-    }
-    return data[index];
+  ~Vector() { delete[] _data; }
+
+  T &operator[](nstd::size_t index) {
+    return _data[index];
   }
 
-  const T &operator[](std::size_t index) const {
-    if (index >= capacity) {
-      throw std::out_of_range("Index out of bounds");
-    }
-    return data[index];
+  const T &operator[](nstd::size_t index) const {
+    return _data[index];
   }
 
-  std::size_t get_capacity() const { return capacity; }
+  nstd::size_t get_capacity() const { return capacity; }
 };
+}
