@@ -1,6 +1,12 @@
 #pragma once
 
+#include "nstd_common.hpp"
+
 namespace nstd {
+
+template <class T> struct identity {
+  typedef T type;
+};
 
 template <class T, T u> struct integral_constant {
   using type = T;
@@ -44,6 +50,12 @@ template <class T> struct is_volatile : public false_type {};
 
 template <class T> struct is_volatile<volatile T> : public true_type {};
 
+template <class T> struct is_array : public false_type {};
+
+template <class T> struct is_array<T[]> : public true_type {};
+
+template <class T, nstd::size_t N> struct is_array<T[N]> : public true_type {};
+
 template <class T> struct remove_reference {
   using type = T;
 };
@@ -85,6 +97,20 @@ template <class T> struct remove_volatile {
 };
 
 template <class T> struct remove_volatile<volatile T> {
+  using type = T;
+};
+
+template <class T> struct remove_array {
+  using type = T;
+};
+
+template <class T> struct remove_array<T[]> {
+  using type = T;
+};
+
+template <bool b, class T> struct enable_if {};
+
+template <class T> struct enable_if<true, T> {
   using type = T;
 };
 

@@ -55,6 +55,12 @@ TEST(TypeTraits, IsVolatile) {
   EXPECT_FALSE((nstd::is_volatile<const int>::value));
 }
 
+
+TEST(TypeTraits, IsArray) {
+  EXPECT_TRUE((nstd::is_array<int[]>::value));
+  EXPECT_FALSE((nstd::is_array<int>::value));
+}
+
 TEST(TypeTraits, RemoveReference) {
   EXPECT_TRUE((nstd::is_same<nstd::remove_reference<int>::type, int>::value));
   EXPECT_TRUE((nstd::is_same<nstd::remove_reference<int&>::type, int>::value));
@@ -64,24 +70,33 @@ TEST(TypeTraits, RemoveReference) {
 TEST(TypeTraits, RemoveConst) {
   EXPECT_TRUE((nstd::is_same<nstd::remove_const<int>::type, int>::value));
   EXPECT_TRUE((nstd::is_same<nstd::remove_const<const int>::type, int>::value));
-  EXPECT_TRUE((nstd::is_same<nstd::remove_const<const volatile int>::type, volatile int>::value));
+  EXPECT_TRUE((nstd::is_same<nstd::remove_const<const volatile int>::type,
+                             volatile int>::value));
 }
 
 TEST(TypeTraits, RemoveVolatile) {
   EXPECT_TRUE((nstd::is_same<nstd::remove_volatile<int>::type, int>::value));
-  EXPECT_TRUE((nstd::is_same<nstd::remove_volatile<volatile int>::type, int>::value));
-  EXPECT_TRUE((nstd::is_same<nstd::remove_volatile<const volatile int>::type, const int>::value));
+  EXPECT_TRUE(
+      (nstd::is_same<nstd::remove_volatile<volatile int>::type, int>::value));
+  EXPECT_TRUE((nstd::is_same<nstd::remove_volatile<const volatile int>::type,
+                             const int>::value));
 }
 
 TEST(TypeTraits, RemoveCV) {
   EXPECT_TRUE((nstd::is_same<nstd::remove_cv<int>::type, int>::value));
   EXPECT_TRUE((nstd::is_same<nstd::remove_cv<const int>::type, int>::value));
   EXPECT_TRUE((nstd::is_same<nstd::remove_cv<volatile int>::type, int>::value));
-  EXPECT_TRUE((nstd::is_same<nstd::remove_cv<const volatile int>::type, int>::value));
+  EXPECT_TRUE(
+      (nstd::is_same<nstd::remove_cv<const volatile int>::type, int>::value));
 }
 
-int main(int argc, char **argv) {
+TEST(TypeTraits, RemoveArray) {
+  EXPECT_TRUE((nstd::is_same<nstd::remove_array<int[]>::type, int>::value));
+  EXPECT_TRUE((nstd::is_same<nstd::remove_array<int>::type, int>::value));
+  EXPECT_TRUE((nstd::is_same<nstd::remove_array<int>::type, int>::value));
+}
+
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
