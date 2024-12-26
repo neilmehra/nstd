@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nstd_common.hpp"
+#include "common.hpp"
 
 namespace nstd {
 

@@ -1,5 +1,8 @@
 #include "../include/type_traits.hpp"
-#include "../include/utility.hpp"
+#include "../include/utility/move.hpp"
+#include "../include/utility/shared_ptr.hpp"
+#include "../include/utility/unique_ptr.hpp"
+
 #include <gtest/gtest.h>
 
 TEST(Utility, Move) {
