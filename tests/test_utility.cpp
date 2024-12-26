@@ -56,7 +56,7 @@ TEST(UniquePtr, MoveConstructor) {
   EXPECT_TRUE(ptr1);
 
   nstd::unique_ptr<int> ptr2(std::move(ptr1));
-  EXPECT_FALSE(ptr1);   // old pointer should be null
+  EXPECT_FALSE(ptr1);
   EXPECT_TRUE(ptr2);
   EXPECT_NE(ptr2.get(), nullptr);
   EXPECT_EQ(*ptr2, 42);
@@ -136,8 +136,110 @@ TEST(UniquePtr, DestructionTest) {
     EXPECT_EQ(TestType::count, 1);
     EXPECT_EQ(ptr->getVal(), 42);
   }
-  // After going out of scope, ~unique_ptr() should be called
   EXPECT_EQ(TestType::count, 0);
+}
+
+TEST(SharedPtr, DefaultConstructor) {
+  nstd::shared_ptr<int> ptr;
+  EXPECT_FALSE(ptr);
+  EXPECT_EQ(ptr.get(), nullptr);
+}
+
+TEST(SharedPtr, RawPointerConstructor) {
+  nstd::shared_ptr<int> ptr(new int(10));
+  EXPECT_TRUE(ptr);
+  EXPECT_NE(ptr.get(), nullptr);
+  EXPECT_EQ(*ptr, 10);
+}
+
+TEST(SharedPtr, MoveConstructor) {
+  nstd::shared_ptr<int> ptr1(new int(42));
+  EXPECT_TRUE(ptr1);
+  EXPECT_EQ(ptr1.count(), 1);
+
+  nstd::shared_ptr<int> ptr2(std::move(ptr1));
+  EXPECT_FALSE(ptr1);
+  EXPECT_TRUE(ptr2);
+  EXPECT_NE(ptr2.get(), nullptr);
+  EXPECT_EQ(*ptr2, 42);
+}
+
+TEST(SharedPtr, MoveAssignment) {
+  nstd::shared_ptr<int> ptr1(new int(100));
+  nstd::shared_ptr<int> ptr2(new int(200));
+  EXPECT_EQ(*ptr1, 100);
+  EXPECT_EQ(*ptr2, 200);
+
+  ptr2 = std::move(ptr1);
+  EXPECT_FALSE(ptr1);
+  EXPECT_TRUE(ptr2);
+  EXPECT_EQ(*ptr2, 100);
+}
+
+TEST(SharedPtr, OperatorBool) {
+  nstd::shared_ptr<int> ptr;
+  EXPECT_FALSE(ptr);
+
+  ptr = nstd::shared_ptr<int>(new int(5));
+  EXPECT_TRUE(ptr);
+}
+
+TEST(SharedPtr, DereferenceOperator) {
+  nstd::shared_ptr<int> ptr(new int(5));
+  EXPECT_EQ(*ptr, 5);
+  *ptr = 10;
+  EXPECT_EQ(*ptr, 10);
+}
+
+TEST(SharedPtr, ArrowOperator) {
+  nstd::shared_ptr<TestType> ptr(new TestType(123));
+  ASSERT_NE(ptr.get(), nullptr);
+  EXPECT_EQ(ptr->getVal(), 123);
+
+  ptr->setVal(456);
+  EXPECT_EQ(ptr->getVal(), 456);
+}
+
+TEST(SharedPtr, SwapFunction) {
+  nstd::shared_ptr<int> ptr1(new int(1));
+  nstd::shared_ptr<int> ptr2(new int(2));
+  EXPECT_EQ(*ptr1, 1);
+  EXPECT_EQ(*ptr2, 2);
+
+  swap(ptr1, ptr2);
+  EXPECT_EQ(*ptr1, 2);
+  EXPECT_EQ(*ptr2, 1);
+}
+
+TEST(SharedPtr, ArraySupport) {
+  nstd::shared_ptr<int[]> arrPtr(new int[3]{10, 20, 30});
+  EXPECT_EQ(arrPtr[0], 10);
+  EXPECT_EQ(arrPtr[1], 20);
+  EXPECT_EQ(arrPtr[2], 30);
+
+  arrPtr[1] = 999;
+  EXPECT_EQ(arrPtr[1], 999);
+}
+
+TEST(SharedPtr, MakeShared) {
+  auto intPtr = nstd::make_shared<int>(77);
+  ASSERT_TRUE(intPtr);
+  EXPECT_EQ(*intPtr, 77);
+
+  auto objPtr = nstd::make_shared<TestType>(999);
+  ASSERT_TRUE(objPtr);
+  EXPECT_EQ(objPtr->getVal(), 999);
+}
+
+TEST(SharedPtr, SharingTest) {
+  auto ptr1 = nstd::make_shared<int>(42);
+  EXPECT_EQ(ptr1.count(), 1);
+  {
+    auto ptr2 = ptr1;
+    EXPECT_EQ(ptr1.count(), 2);
+    EXPECT_EQ(ptr2.count(), 2);
+  }
+  EXPECT_EQ(ptr1.count(), 1);
 }
 
 int main(int argc, char** argv) {
