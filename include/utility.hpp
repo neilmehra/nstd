@@ -1,10 +1,9 @@
 #pragma once
 
-#include "type_traits.hpp"
 #include "nstd_common.hpp"
+#include "type_traits.hpp"
 
 namespace nstd {
-
 
 template <class T>
 constexpr nstd::remove_reference<T>::type&& move(T&& arg) noexcept {
@@ -26,17 +25,14 @@ template <class T> class unique_ptr {
 public:
   using value_type = T;
 
-  explicit unique_ptr(T* arg) : _data(arg) {}
-
-  unique_ptr() = default;
+  explicit unique_ptr(T* arg = nullptr) : _data(arg) {}
 
   unique_ptr(const unique_ptr&) = delete;
+  unique_ptr operator=(const unique_ptr&) = delete;
 
   unique_ptr(unique_ptr&& rhs) noexcept : _data(rhs._data) {
     rhs._data = nullptr;
   }
-
-  unique_ptr operator=(const unique_ptr&) = delete;
 
   unique_ptr& operator=(unique_ptr&& rhs) noexcept {
     if (_data != rhs._data) {
@@ -46,34 +42,55 @@ public:
     return *this;
   }
 
-  ~unique_ptr() noexcept {
-    if constexpr (nstd::is_array<T>::value) {
-      delete[] this->_data;
-    } else {
-      delete this->_data;
-    }
-  }
+  ~unique_ptr() noexcept { delete _data; }
 
-  nstd::enable_if<!nstd::is_array<T>::value, T&>::type
-  operator*() const noexcept {
-    return *_data;
-  }
+  T& operator*() const noexcept { return *_data; }
 
-  nstd::enable_if<!nstd::is_array<T>::value, T*>::type
-  operator->() const noexcept {
-    return _data;
-  }
+  T* operator->() const noexcept { return _data; }
 
-  nstd::enable_if<!nstd::is_array<T>::value, typename nstd::remove_array<T>::type&>::type
-  operator[](nstd::size_t i) const {
-    return _data[i];
-  }
-
-  operator bool() const noexcept { return _data != nullptr; }
+  explicit operator bool() const noexcept { return _data != nullptr; }
 
   T* get() const noexcept { return _data; }
 
-  friend void swap(unique_ptr&, unique_ptr&);
+  template <class U>
+  friend void swap(unique_ptr<U>&, unique_ptr<U>&);
+
+private:
+  T* _data;
+};
+
+template <class T> class unique_ptr<T[]> {
+public:
+  using value_type = T;
+
+  explicit unique_ptr(T* arg = nullptr) : _data(arg) {}
+
+  unique_ptr(const unique_ptr&) = delete;
+  unique_ptr operator=(const unique_ptr&) = delete;
+
+  unique_ptr(unique_ptr&& rhs) noexcept : _data(rhs._data) {
+    rhs._data = nullptr;
+  }
+
+  unique_ptr& operator=(unique_ptr&& rhs) noexcept {
+    if (_data != rhs._data) {
+      delete[] _data;
+      _data = rhs._data;
+      rhs._data = nullptr;
+    }
+    return *this;
+  }
+
+  ~unique_ptr() noexcept { delete[] _data; }
+
+  explicit operator bool() const noexcept { return _data != nullptr; }
+
+  T& operator[](nstd::size_t index) const { return _data[index]; }
+
+  T* get() const noexcept { return _data; }
+
+  template <class U>
+  friend void swap(unique_ptr<U>&, unique_ptr<U>&);
 
 private:
   T* _data;
@@ -88,19 +105,4 @@ constexpr nstd::unique_ptr<T> make_unique(Args&&... args) {
   return unique_ptr<T>(new T(nstd::forward<Args>(args)...));
 }
 
-class A {
-public:
-  A(int a, int b) : x(a), c(b) {}
-
-  void meow() {}
-
-private:
-  int x, c;
-};
-
-void test() {
-  auto x = nstd::unique_ptr(new A{1, 2});
-  auto y = nstd::make_unique<A>(1, 2);
-  (*y).meow();
-}
 } // namespace nstd
