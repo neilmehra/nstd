@@ -1,33 +1,28 @@
 #pragma once
 
-#include "def.hpp"
-
+#include <cstddef>
 namespace nstd {
 
-template <class T>
-class Vector {
+template <class T> class Vector {
 private:
-  T*_data;
+  T* _data;
   T* _start;
   T* _end;
-  nstd::size_t capacity;
+  std::size_t capacity;
 
 public:
   using value_type = T;
+  using ref_type = T&;
 
-  explicit Vector(nstd::size_t initial_capacity = 16)
+  explicit Vector(std::size_t initial_capacity = 16)
       : _data(new T[initial_capacity]), capacity(initial_capacity) {}
 
   ~Vector() { delete[] _data; }
 
-  T &operator[](nstd::size_t index) {
-    return _data[index];
-  }
+  T& operator[](std::size_t index) { return _data[index]; }
 
-  const T &operator[](nstd::size_t index) const {
-    return _data[index];
-  }
+  const T& operator[](std::size_t index) const { return _data[index]; }
 
-  nstd::size_t get_capacity() const { return capacity; }
+  std::size_t get_capacity() const { return capacity; }
 };
-}
+} // namespace nstd

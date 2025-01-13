@@ -3,6 +3,7 @@
 #include "type_traits.hpp"
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 
 namespace nstd {
 
@@ -16,9 +17,12 @@ constexpr T&& forward(typename nstd::remove_reference<T>::type& arg) {
   return static_cast<nstd::identity<T>::type&&>(arg);
 }
 
-// see https://stackoverflow.com/questions/38344332/why-does-stdforward-have-two-overloads
+// see
+// https://stackoverflow.com/questions/38344332/why-does-stdforward-have-two-overloads
+// https://stackoverflow.com/questions/29135698/how-does-stdforward-receive-the-correct-argument/29135875#29135875
 template <class T>
 constexpr T&& forward(typename nstd::remove_reference<T>::type&& arg) {
+  static_assert(!nstd::is_lvalue_reference<T>());
   return static_cast<nstd::identity<T>::type&&>(arg);
 }
 
