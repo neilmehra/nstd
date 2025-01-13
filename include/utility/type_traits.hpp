@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include <cstddef>
 
 namespace nstd {
 
@@ -54,7 +54,7 @@ template <class T> struct is_array : public false_type {};
 
 template <class T> struct is_array<T[]> : public true_type {};
 
-template <class T, nstd::size_t N> struct is_array<T[N]> : public true_type {};
+template <class T, std::size_t N> struct is_array<T[N]> : public true_type {};
 
 template <class T> struct remove_reference {
   using type = T;
