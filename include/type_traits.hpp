@@ -28,21 +28,18 @@ template <class T> struct remove_cv<const T> {
 template <class T> struct remove_cv<volatile T> {
   using type = T;
 };
-
 template <class T> struct remove_const {
   using type = T;
 };
 template <class T> struct remove_const<const T> {
   using type = T;
 };
-
 template <class T> struct remove_volatile {
   using type = T;
 };
 template <class T> struct remove_volatile<volatile T> {
   using type = T;
 };
-
 template <class T> struct add_const {
   using type = const T;
 };
@@ -61,9 +58,22 @@ template <class T> using add_volatile_t = typename add_volatile<T>::type;
 template <class T> using add_cv_t = typename add_cv<T>::type;
 
 // 20.15.7.2, reference modifications
-template <class T> struct remove_reference;
-template <class T> struct add_lvalue_reference;
-template <class T> struct add_rvalue_reference;
+template <class T> struct remove_reference {
+  using type = T;
+};
+template <class T> struct remove_reference<T&> {
+  using type = T;
+};
+template <class T> struct remove_reference<T&&> {
+  using type = T;
+};
+template <class T> struct add_lvalue_reference {
+  using type = T&;
+};
+template <class T> struct add_rvalue_reference {
+  using type = T&&;
+};
+
 template <class T>
 using remove_reference_t = typename remove_reference<T>::type;
 template <class T>
@@ -124,10 +134,10 @@ template <class T> struct is_pointer : public is_pointer<remove_cv_t<T>> {};
 template <class T, std::size_t N> struct is_pointer<T[N]> : true_type {};
 
 template <class T> struct is_lvalue_reference : public false_type {};
-template <class T> struct is_lvalue_reference<T &> : public false_type {};
+template <class T> struct is_lvalue_reference<T&> : public false_type {};
 
 template <class T> struct is_rvalue_reference : public false_type {};
-template <class T> struct is_rvalue_reference<T &&> : public false_type {};
+template <class T> struct is_rvalue_reference<T&&> : public false_type {};
 
 template <class T> struct is_member_object_pointer;
 template <class T> struct is_member_function_pointer;
@@ -136,8 +146,51 @@ template <class T> struct is_enum : public bool_constant<__is_enum(T)> {};
 template <class T> struct is_union : public bool_constant<__is_union(T)> {};
 template <class T> struct is_class : public bool_constant<__is_class(T)> {};
 
-template<class> struct is_function : public false_type {};
-template <class Ret, class... Args> struct is_function<Ret(Args...)> : public true_type {};
+// is_function
+
+template <class Ret, class... Args> struct _remove_f_noexcept {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_noexcept<Ret(Args...) noexcept> {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_const {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_const<Ret(Args...) const> {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_const_noexcept {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args...) const noexcept> {
+  using type = Ret(Args...);
+};
+
+template <class> struct is_function_base : public false_type {};
+template <class Ret, class... Args>
+struct is_function_base<Ret(Args...)> : public true_type {};
+template <class Ret, class... Args>
+struct is_function_base<Ret(Args......)> : public true_type {};
+
+// template <class Ret, class... Args>
+// struct is_function
+//     : public is_function_base<typename remove_cv<typename remove_reference<
+//           typename _remove_f_const_noexcept<Ret,
+//           Args...>::type>::type>::type> {
+// };
+
+template <class Ret, class... Args>
+struct is_function
+    : public is_function_base<
+          typename _remove_f_const_noexcept<Ret, Args...>::type> {};
 
 // 20.15.4.2, composite type categories
 template <class T> struct is_reference;
@@ -292,7 +345,8 @@ inline constexpr bool is_member_function_pointer_v =
 template <class T> inline constexpr bool is_enum_v = is_enum<T>::value;
 template <class T> inline constexpr bool is_union_v = is_union<T>::value;
 template <class T> inline constexpr bool is_class_v = is_class<T>::value;
-template <class T> inline constexpr bool is_function_v = is_function<T>::value;
+template <class T>
+inline constexpr bool is_function_v = is_function_base<T>::value;
 // 20.15.4.2, composite type categories
 template <class T>
 inline constexpr bool is_reference_v = is_reference<T>::value;

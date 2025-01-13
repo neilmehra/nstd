@@ -28,12 +28,12 @@ void func_foo() {
 
 }
 
-void func_bar(int x, int y) {
+void func_bar() noexcept {
 
 }
 
 TEST(TypeTraits, IsFunction) {
-  EXPECT_TRUE((nstd::is_function<decltype(func_foo)>::value));
+  ASSERT_EQ(decltype((nstd::_remove_f_noexcept<decltype((func_bar))>::type)), decltype((func_foo)));
 }
 
 int main(int argc, char** argv) {
