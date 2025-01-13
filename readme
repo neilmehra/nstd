@@ -1,0 +1,14 @@
+fresh build
+----------
+mkc build
+cmake ..
+
+
+build project
+--------------
+cmake --build .
+
+
+test
+--------
+ctest

@@ -27,6 +27,7 @@ FetchContent_Declare(
 # Download and build Google Test
 FetchContent_MakeAvailable(googletest)
 
+
 # Link Google Test to test executables
 file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
 foreach(TEST_SOURCE ${TEST_SOURCES})
