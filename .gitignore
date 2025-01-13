@@ -4,6 +4,7 @@
 
 # External dependencies (e.g., Google Test)
 external/googletest/build/
+_deps/
 
 # Temporary files and logs
 *.log
