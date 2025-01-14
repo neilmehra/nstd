@@ -70,7 +70,8 @@ template <class T> struct remove_reference<T&> {
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
-// note that this is a bit weird. if T is a ref-type, then we follow through with reference collapsing rules rather than it actually being an rvalue ref
+// note that this is a bit weird. if T is a ref-type, then we follow through
+// with reference collapsing rules rather than it actually being an rvalue ref
 // e.g add_rvalue_reference<T&>::type is T&
 template <class T> struct add_lvalue_reference {
   using type = T&;
@@ -129,7 +130,8 @@ struct is_floating_point : public is_floating_point_base<remove_cv_t<T>> {};
 // is_array
 template <class T> struct is_array_base : public false_type {};
 template <class T> struct is_array_base<T[]> : public true_type {};
-template <class T, std::size_t N> struct is_array_base<T[N]> : public true_type {};
+template <class T, std::size_t N>
+struct is_array_base<T[N]> : public true_type {};
 template <class T> struct is_array : public is_array_base<remove_cv_t<T>> {};
 
 // is_pointer
@@ -153,22 +155,6 @@ template <class T> struct is_class : public bool_constant<__is_class(T)> {};
 
 // is_function
 
-template <class T> struct _remove_f_noexcept {
-  using type = T;
-};
-
-template <class Ret, class... Args>
-struct _remove_f_noexcept<Ret(Args...) noexcept> {
-  using type = Ret (*)(Args...);
-};
-
-template <class T> struct _remove_f_const {
-  using type = T;
-};
-
-template <class Ret, class... Args> struct _remove_f_const<Ret(Args...) const> {
-  using type = Ret (*)(Args...);
-};
 
 template <class T> struct _remove_f_const_noexcept {
   using type = T;
@@ -179,18 +165,84 @@ struct _remove_f_const_noexcept<Ret(Args...) const noexcept> {
   using type = Ret (*)(Args...);
 };
 
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args...) noexcept> {
+  using type = Ret (*)(Args...);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args...) const> {
+  using type = Ret (*)(Args...);
+};
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wambiguous-ellipsis"
+
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args......) const noexcept> {
+  using type = Ret (*)(Args......);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args......) noexcept> {
+  using type = Ret (*)(Args......);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_const_noexcept<Ret(Args......) const> {
+  using type = Ret (*)(Args......);
+};
+
+#pragma clang diagnostic pop
+
+template <class T>
+using _remove_f_const_noexcept_t = _remove_f_const_noexcept<T>::type;
+
+template <class T> struct _remove_f_refq {
+  using type = T;
+};
+
+template <class Ret, class... Args> struct _remove_f_refq<Ret(Args...)&> {
+  using type = Ret (*)(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_refq<Ret(Args...) &&> {
+  using type = Ret (*)(Args...);
+};
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wambiguous-ellipsis"
+
+template <class Ret, class... Args> struct _remove_f_refq<Ret(Args......)&> {
+  using type = Ret (*)(Args......);
+};
+
+template <class Ret, class... Args> struct _remove_f_refq<Ret(Args......) &&> {
+  using type = Ret (*)(Args......);
+};
+
+#pragma clang diagnostic pop
+
+template <class T> using _remove_f_refq_t = _remove_f_refq<T>::type;
+
 template <class T> struct is_function_base : public false_type {};
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wambiguous-ellipsis"
 
 template <class Ret, class... Args>
 struct is_function_base<Ret(Args......)> : public true_type {};
+
+
+#pragma clang diagnostic pop
 
 template <class Ret, class... Args>
 struct is_function_base<Ret(Args...)> : public true_type {};
 
 template <class T>
 struct is_function
-    : public is_function_base<typename remove_reference<typename remove_cv<
-          typename _remove_f_const_noexcept<T>::type>::type>::type> {};
+    : public is_function_base<remove_reference_t<
+          remove_cv_t<_remove_f_const_noexcept_t<_remove_f_refq_t<T>>>>> {};
 
 // 20.15.4.2, composite type categories
 template <class T> struct is_reference;

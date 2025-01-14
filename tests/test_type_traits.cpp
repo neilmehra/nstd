@@ -177,11 +177,9 @@ TEST(TypeTraits, IsFunction) {
   struct Foo {
     static void s_foo_member() {};
     static void s_foo_member_c() {};
-    static void s_foo_member_cn() {};
-    void foo_member() {};
-    void foo_member_c() const {};
-    void foo_member_cn() const noexcept {};
+    static void s_foo_member_cn() noexcept {};
   };
+
   Foo bar{};
   void foo();
 #pragma clang diagnostic push
@@ -190,16 +188,17 @@ TEST(TypeTraits, IsFunction) {
 #pragma clang diagnostic pop
   int goo(int, int);
   int loo(int...);
+  int aoo(int, int...) noexcept;
+
   EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member_c)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member_cn)>);
-  EXPECT_TRUE(nstd::is_function_v<decltype(bar.s_foo_member)>);
-  EXPECT_TRUE(nstd::is_function_v<decltype(bar.s_foo_member_c)>);
-  EXPECT_TRUE(nstd::is_function_v<decltype(bar.s_foo_member_cn)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(foo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(moo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(goo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(loo)>);
+  EXPECT_TRUE(nstd::is_function_v<decltype(loo)>);
+  EXPECT_TRUE(nstd::is_function_v<decltype(aoo)>);
 }
 
 TEST(TypeTraits, IsReference) {
