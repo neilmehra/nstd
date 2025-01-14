@@ -70,6 +70,8 @@ template <class T> struct remove_reference<T&> {
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
+// note that this is a bit weird. if T is a ref-type, then we follow through with reference collapsing rules rather than it actually being an rvalue ref
+// e.g add_rvalue_reference<T&>::type is T&
 template <class T> struct add_lvalue_reference {
   using type = T&;
 };
