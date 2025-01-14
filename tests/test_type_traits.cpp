@@ -144,21 +144,21 @@ TEST(TypeTraits, IsIntegral) {
 }
 
 TEST(TypeTraits, IsFloatingPoint) {
-  EXPECT_TRUE((nstd::is_integral_v<float>));
-  EXPECT_TRUE((nstd::is_integral_v<double>));
-  EXPECT_TRUE((nstd::is_integral_v<long double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<float>));
+  EXPECT_TRUE((nstd::is_floating_point_v<double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<long double>));
 
-  EXPECT_TRUE((nstd::is_integral_v<const float>));
-  EXPECT_TRUE((nstd::is_integral_v<const double>));
-  EXPECT_TRUE((nstd::is_integral_v<const long double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const float>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const long double>));
 
-  EXPECT_TRUE((nstd::is_integral_v<volatile float>));
-  EXPECT_TRUE((nstd::is_integral_v<volatile double>));
-  EXPECT_TRUE((nstd::is_integral_v<volatile long double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<volatile float>));
+  EXPECT_TRUE((nstd::is_floating_point_v<volatile double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<volatile long double>));
 
-  EXPECT_TRUE((nstd::is_integral_v<const volatile float>));
-  EXPECT_TRUE((nstd::is_integral_v<const volatile double>));
-  EXPECT_TRUE((nstd::is_integral_v<const volatile long double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const volatile float>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const volatile double>));
+  EXPECT_TRUE((nstd::is_floating_point_v<const volatile long double>));
 }
 
 

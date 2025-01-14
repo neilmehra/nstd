@@ -1,14 +1,2 @@
-fresh build
-----------
-mkc build
-cmake ..
-
-
-build project
---------------
-cmake --build .
-
-
-test
---------
-ctest
+run ./gen.sh for new project
+run ./run.sh to re-build and test
