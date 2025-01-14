@@ -28,6 +28,9 @@ template <class T> struct remove_cv<const T> {
 template <class T> struct remove_cv<volatile T> {
   using type = T;
 };
+template <class T> struct remove_cv<const volatile T> {
+  using type = T;
+};
 template <class T> struct remove_const {
   using type = T;
 };
@@ -124,8 +127,8 @@ struct is_floating_point : public is_floating_point_base<remove_cv_t<T>> {};
 // is_array
 template <class T> struct is_array_base : public false_type {};
 template <class T> struct is_array_base<T[]> : public true_type {};
-template <class T> struct is_array : public is_array<remove_cv_t<T>> {};
-template <class T, std::size_t N> struct is_array<T[N]> : true_type {};
+template <class T, std::size_t N> struct is_array_base<T[N]> : public true_type {};
+template <class T> struct is_array : public is_array_base<remove_cv_t<T>> {};
 
 // is_pointer
 template <class T> struct is_pointer_base : public false_type {};
@@ -134,10 +137,10 @@ template <class T> struct is_pointer : public is_pointer<remove_cv_t<T>> {};
 template <class T, std::size_t N> struct is_pointer<T[N]> : true_type {};
 
 template <class T> struct is_lvalue_reference : public false_type {};
-template <class T> struct is_lvalue_reference<T&> : public false_type {};
+template <class T> struct is_lvalue_reference<T&> : public true_type {};
 
 template <class T> struct is_rvalue_reference : public false_type {};
-template <class T> struct is_rvalue_reference<T&&> : public false_type {};
+template <class T> struct is_rvalue_reference<T&&> : public true_type {};
 
 template <class T> struct is_member_object_pointer;
 template <class T> struct is_member_function_pointer;
@@ -148,49 +151,44 @@ template <class T> struct is_class : public bool_constant<__is_class(T)> {};
 
 // is_function
 
-template <class Ret, class... Args> struct _remove_f_noexcept {
-  using type = Ret(Args...);
+template <class T> struct _remove_f_noexcept {
+  using type = T;
 };
 
 template <class Ret, class... Args>
 struct _remove_f_noexcept<Ret(Args...) noexcept> {
-  using type = Ret(Args...);
+  using type = Ret (*)(Args...);
 };
 
-template <class Ret, class... Args> struct _remove_f_const {
-  using type = Ret(Args...);
+template <class T> struct _remove_f_const {
+  using type = T;
 };
 
 template <class Ret, class... Args> struct _remove_f_const<Ret(Args...) const> {
-  using type = Ret(Args...);
+  using type = Ret (*)(Args...);
 };
 
-template <class Ret, class... Args> struct _remove_f_const_noexcept {
-  using type = Ret(Args...);
+template <class T> struct _remove_f_const_noexcept {
+  using type = T;
 };
 
 template <class Ret, class... Args>
 struct _remove_f_const_noexcept<Ret(Args...) const noexcept> {
-  using type = Ret(Args...);
+  using type = Ret (*)(Args...);
 };
 
-template <class> struct is_function_base : public false_type {};
-template <class Ret, class... Args>
-struct is_function_base<Ret(Args...)> : public true_type {};
+template <class T> struct is_function_base : public false_type {};
+
 template <class Ret, class... Args>
 struct is_function_base<Ret(Args......)> : public true_type {};
 
-// template <class Ret, class... Args>
-// struct is_function
-//     : public is_function_base<typename remove_cv<typename remove_reference<
-//           typename _remove_f_const_noexcept<Ret,
-//           Args...>::type>::type>::type> {
-// };
-
 template <class Ret, class... Args>
+struct is_function_base<Ret(Args...)> : public true_type {};
+
+template <class T>
 struct is_function
-    : public is_function_base<
-          typename _remove_f_const_noexcept<Ret, Args...>::type> {};
+    : public is_function_base<typename remove_reference<typename remove_cv<
+          typename _remove_f_const_noexcept<T>::type>::type>::type> {};
 
 // 20.15.4.2, composite type categories
 template <class T> struct is_reference;
@@ -251,7 +249,8 @@ template <class T> struct alignment_of;
 template <class T> struct rank;
 template <class T, unsigned I = 0> struct extent;
 // 20.15.6, type relations
-template <class T, class U> struct is_same;
+template <class T, class U> struct is_same : public false_type {};
+template <class T> struct is_same<T, T> : public true_type {};
 template <class Base, class Derived> struct is_base_of;
 template <class From, class To> struct is_convertible;
 template <class From, class To> struct is_nothrow_convertible;
