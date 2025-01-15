@@ -120,6 +120,8 @@ TEST(TypeTraits, IsIntegral) {
   EXPECT_TRUE((nstd::is_integral_v<int>));
   EXPECT_TRUE((nstd::is_integral_v<long>));
   EXPECT_TRUE((nstd::is_integral_v<long long>));
+  EXPECT_TRUE((nstd::is_integral_v<signed char>));
+  EXPECT_TRUE((nstd::is_integral_v<unsigned char>));
   EXPECT_TRUE((nstd::is_integral_v<unsigned short>));
   EXPECT_TRUE((nstd::is_integral_v<unsigned int>));
   EXPECT_TRUE((nstd::is_integral_v<unsigned long>));
@@ -135,6 +137,8 @@ TEST(TypeTraits, IsIntegral) {
   EXPECT_TRUE((nstd::is_integral_v<const int>));
   EXPECT_TRUE((nstd::is_integral_v<const long>));
   EXPECT_TRUE((nstd::is_integral_v<const long long>));
+  EXPECT_TRUE((nstd::is_integral_v<const signed char>));
+  EXPECT_TRUE((nstd::is_integral_v<const unsigned char>));
   EXPECT_TRUE((nstd::is_integral_v<const unsigned short>));
   EXPECT_TRUE((nstd::is_integral_v<const unsigned int>));
   EXPECT_TRUE((nstd::is_integral_v<const unsigned long>));
@@ -150,6 +154,8 @@ TEST(TypeTraits, IsIntegral) {
   EXPECT_TRUE((nstd::is_integral_v<volatile int>));
   EXPECT_TRUE((nstd::is_integral_v<volatile long>));
   EXPECT_TRUE((nstd::is_integral_v<volatile long long>));
+  EXPECT_TRUE((nstd::is_integral_v<volatile signed char>));
+  EXPECT_TRUE((nstd::is_integral_v<volatile unsigned char>));
   EXPECT_TRUE((nstd::is_integral_v<volatile unsigned short>));
   EXPECT_TRUE((nstd::is_integral_v<volatile unsigned int>));
   EXPECT_TRUE((nstd::is_integral_v<volatile unsigned long>));
@@ -165,6 +171,8 @@ TEST(TypeTraits, IsIntegral) {
   EXPECT_TRUE((nstd::is_integral_v<const volatile int>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile long>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile long long>));
+  EXPECT_TRUE((nstd::is_integral_v<const volatile signed char>));
+  EXPECT_TRUE((nstd::is_integral_v<const volatile unsigned char>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile unsigned short>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile unsigned int>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile unsigned long>));
@@ -354,6 +362,30 @@ TEST(TypeTraits, IsScalar) {}
 TEST(TypeTraits, IsCompound) {}
 
 TEST(TypeTraits, IsMemberPtr) {}
+
+TEST(TypeTraits, IsSigned) {
+  EXPECT_FALSE((nstd::is_signed_v<bool>));
+  EXPECT_TRUE((nstd::is_signed_v<short>));
+  EXPECT_TRUE((nstd::is_signed_v<int>));
+  EXPECT_TRUE((nstd::is_signed_v<long>));
+  EXPECT_TRUE((nstd::is_signed_v<long long>));
+  EXPECT_FALSE((nstd::is_signed_v<unsigned short>));
+  EXPECT_FALSE((nstd::is_signed_v<unsigned int>));
+  EXPECT_FALSE((nstd::is_signed_v<unsigned long>));
+  EXPECT_FALSE((nstd::is_signed_v<unsigned long long>));
+}
+
+TEST(TypeTraits, IsUnsigned) {
+  EXPECT_TRUE((nstd::is_unsigned_v<bool>));
+  EXPECT_FALSE((nstd::is_unsigned_v<short>));
+  EXPECT_FALSE((nstd::is_unsigned_v<int>));
+  EXPECT_FALSE((nstd::is_unsigned_v<long>));
+  EXPECT_FALSE((nstd::is_unsigned_v<long long>));
+  EXPECT_TRUE((nstd::is_unsigned_v<unsigned short>));
+  EXPECT_TRUE((nstd::is_unsigned_v<unsigned int>));
+  EXPECT_TRUE((nstd::is_unsigned_v<unsigned long>));
+  EXPECT_TRUE((nstd::is_unsigned_v<unsigned long long>));
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

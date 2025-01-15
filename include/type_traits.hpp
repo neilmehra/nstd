@@ -363,9 +363,9 @@ inline constexpr bool disjunction_v = disjunction<B...>::value;
 template <class B> inline constexpr bool negation_v = negation<B>::value;
 // 20.15.9, member relationships
 template <class S, class M>
-constexpr bool is_pointer_interconvertible_with_class(M S::*m) noexcept;
+constexpr bool is_pointer_interconvertible_with_class(M S::* m) noexcept;
 template <class S1, class S2, class M1, class M2>
-constexpr bool is_corresponding_member(M1 S1::*m1, M2 S2::*m2) noexcept;
+constexpr bool is_corresponding_member(M1 S1::* m1, M2 S2::* m2) noexcept;
 // 20.15.10, constant evaluation context
 constexpr bool is_constant_evaluated() noexcept;
 
@@ -458,6 +458,7 @@ template <> struct is_integral_base<short> : public true_type {};
 template <> struct is_integral_base<int> : public true_type {};
 template <> struct is_integral_base<long> : public true_type {};
 template <> struct is_integral_base<long long> : public true_type {};
+template <> struct is_integral_base<signed char> : public true_type {};
 template <> struct is_integral_base<unsigned char> : public true_type {};
 template <> struct is_integral_base<unsigned short> : public true_type {};
 template <> struct is_integral_base<unsigned int> : public true_type {};
@@ -709,20 +710,38 @@ struct is_member_pointer
                            is_member_function_pointer_v<T>> {};
 
 // 20.15.4.3, type properties
-template <class T> struct is_const;
-template <class T> struct is_volatile;
-template <class T> struct is_trivial;
-template <class T> struct is_trivially_copyable;
-template <class T> struct is_standard_layout;
-template <class T> struct is_empty;
-template <class T> struct is_polymorphic;
-template <class T> struct is_abstract;
-template <class T> struct is_final;
-template <class T> struct is_aggregate;
-template <class T> struct is_signed;
-template <class T> struct is_unsigned;
+template <class T> struct is_const : public false_type {};
+template <class T> struct is_const<const T> : public true_type {};
+template <class T> struct is_const<const volatile T> : public true_type {};
+
+template <class T> struct is_volatile : public false_type {};
+template <class T> struct is_volatile<volatile T> : public true_type {};
+template <class T> struct is_volatile<const volatile T> : public true_type {};
+
+template <class T> struct is_trivial : public bool_constant<__is_trivial(T)> {};
+template <class T>
+struct is_trivially_copyable
+    : public bool_constant<__is_trivially_copyable(T)> {};
+
+template <class T>
+struct is_standard_layout : public bool_constant<__is_standard_layout(T)> {};
+template <class T> struct is_empty : public bool_constant<__is_empty(T)> {};
+template <class T>
+struct is_polymorphic : public bool_constant<__is_polymorphic(T)> {};
+template <class T>
+struct is_abstract : public bool_constant<__is_abstract(T)> {};
+template <class T> struct is_final : public bool_constant<__is_final(T)> {};
+template <class T>
+struct is_aggregate : public bool_constant<__is_aggregate(T)> {};
+template <class T>
+struct is_signed : public bool_constant<is_arithmetic_v<T> && (T(-1) < T(0))> {
+};
+template <class T>
+struct is_unsigned : public bool_constant<!is_signed_v<T>> {};
 template <class T> struct is_bounded_array;
 template <class T> struct is_unbounded_array;
+
+// Operations
 template <class T, class... Args> struct is_constructible;
 template <class T> struct is_default_constructible;
 template <class T> struct is_copy_constructible;
