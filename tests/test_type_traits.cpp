@@ -1,7 +1,26 @@
 #include "../include/type_traits.hpp"
 #include <gtest/gtest.h>
 
-using five_int = nstd::integral_constant<int, 5>;
+struct Foo {
+  int b;
+  const int c;
+  volatile int d;
+  const volatile int e;
+  void foo();
+  void foo_c() const;
+  void foo_n() noexcept;
+  void foo_cn() const noexcept;
+  void foo_cn_lref() const& noexcept;
+  void foo_cn_rref() const&& noexcept;
+
+  static int z;
+  static const int y;
+  static volatile int x;
+  static const volatile int w;
+
+  static void s_foo();
+  static void s_foo_n() noexcept;
+};
 
 TEST(TypeTraits, IsSame) {
   EXPECT_TRUE((nstd::is_same_v<int, int>));
@@ -184,23 +203,41 @@ TEST(TypeTraits, IsArray) {
 TEST(TypeTraits, IsPointer) {
   void foo();
   void goo() noexcept;
+  struct A {
+    void bar();
+    static void bar2();
+  };
   EXPECT_TRUE(nstd::is_pointer_v<int*>);
   EXPECT_TRUE(nstd::is_pointer_v<void*>);
-  EXPECT_TRUE(nstd::is_pointer_v<const int*>);
   EXPECT_TRUE(nstd::is_pointer_v<int* const>);
-  EXPECT_TRUE(nstd::is_pointer_v<const int* const>);
-  EXPECT_TRUE(nstd::is_pointer_v<const int* const>);
   EXPECT_TRUE(nstd::is_pointer_v<decltype(&foo)>);
   EXPECT_TRUE(nstd::is_pointer_v<decltype(&goo)>);
+  EXPECT_FALSE(nstd::is_pointer_v<decltype(&A::bar)>);
+  EXPECT_TRUE(nstd::is_pointer_v<decltype(&A::bar2)>);
 
   EXPECT_TRUE(nstd::is_pointer_v<volatile int*>);
   EXPECT_TRUE(nstd::is_pointer_v<volatile void*>);
-  EXPECT_TRUE(nstd::is_pointer_v<volatile const int*>);
   EXPECT_TRUE(nstd::is_pointer_v<volatile int* const>);
-  EXPECT_TRUE(nstd::is_pointer_v<volatile const int* const>);
-  EXPECT_TRUE(nstd::is_pointer_v<volatile const int* const>);
   EXPECT_TRUE(nstd::is_pointer_v<volatile decltype(&foo)>);
   EXPECT_TRUE(nstd::is_pointer_v<volatile decltype(&goo)>);
+  EXPECT_FALSE(nstd::is_pointer_v<volatile decltype(&A::bar)>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile decltype(&A::bar2)>);
+
+  EXPECT_TRUE(nstd::is_pointer_v<const int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<const void*>);
+  EXPECT_TRUE(nstd::is_pointer_v<const int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<const decltype(&foo)>);
+  EXPECT_TRUE(nstd::is_pointer_v<const decltype(&goo)>);
+  EXPECT_FALSE(nstd::is_pointer_v<const decltype(&A::bar)>);
+  EXPECT_TRUE(nstd::is_pointer_v<const decltype(&A::bar2)>);
+
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile void*>);
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile decltype(&foo)>);
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile decltype(&goo)>);
+  EXPECT_FALSE(nstd::is_pointer_v<const volatile decltype(&A::bar)>);
+  EXPECT_TRUE(nstd::is_pointer_v<const volatile decltype(&A::bar2)>);
 }
 
 TEST(TypeTraits, IsLvalueRef) {
@@ -239,24 +276,49 @@ TEST(TypeTraits, IsRvalueRef) {
   EXPECT_TRUE(nstd::is_rvalue_reference_v<const volatile int&&>);
 }
 
-template<class T> struct mob : public nstd::false_type {};
-template<class C, class T> struct mob<T C::*> : public nstd::true_type {};
-
 TEST(TypeTraits, IsMemberObjectPtr) {
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo_c)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo_n)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo_cn)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo_cn_lref)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::foo_cn_rref)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::s_foo)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::s_foo_n)>);
+
+  EXPECT_TRUE(nstd::is_member_object_pointer_v<decltype(&Foo::b)>);
+  EXPECT_TRUE(nstd::is_member_object_pointer_v<decltype(&Foo::c)>);
+  EXPECT_TRUE(nstd::is_member_object_pointer_v<decltype(&Foo::d)>);
+  EXPECT_TRUE(nstd::is_member_object_pointer_v<decltype(&Foo::e)>);
+
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::z)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::y)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::x)>);
+  EXPECT_FALSE(nstd::is_member_object_pointer_v<decltype(&Foo::w)>);
 }
 
 TEST(TypeTraits, IsMemberFunctionPtr) {
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo)>);
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo_c)>);
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo_n)>);
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo_cn)>);
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo_cn_lref)>);
+  EXPECT_TRUE(nstd::is_member_function_pointer_v<decltype(&Foo::foo_cn_rref)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::s_foo)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::s_foo_n)>);
 
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::b)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::c)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::d)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::e)>);
+
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::z)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::y)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::x)>);
+  EXPECT_FALSE(nstd::is_member_function_pointer_v<decltype(&Foo::w)>);
 }
 
 TEST(TypeTraits, IsFunction) {
-  struct Foo {
-    static void s_foo_member() {};
-    static void s_foo_member_c() {};
-    static void s_foo_member_cn() noexcept {};
-  };
-
-  Foo bar{};
   void foo();
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wvexing-parse"
@@ -268,10 +330,10 @@ TEST(TypeTraits, IsFunction) {
   int lmao(int) noexcept;
   int lmao2(int);
 
-  EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member)>);
-  EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member_c)>);
-  EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member_cn)>);
+  EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo)>);
+  EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_n)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(foo)>);
+  EXPECT_TRUE(std::is_function_v<decltype(foo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(moo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(goo)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(loo)>);
@@ -279,26 +341,19 @@ TEST(TypeTraits, IsFunction) {
   EXPECT_TRUE(nstd::is_function_v<decltype(aoo)>);
 }
 
-TEST(TypeTraits, IsReference) {
-}
+TEST(TypeTraits, IsReference) {}
 
-TEST(TypeTraits, IsArithmetic) {
-}
+TEST(TypeTraits, IsArithmetic) {}
 
-TEST(TypeTraits, IsFundamental) {
-}
+TEST(TypeTraits, IsFundamental) {}
 
-TEST(TypeTraits, IsObject) {
-}
+TEST(TypeTraits, IsObject) {}
 
-TEST(TypeTraits, IsScalar) {
-}
+TEST(TypeTraits, IsScalar) {}
 
-TEST(TypeTraits, IsCompound) {
-}
+TEST(TypeTraits, IsCompound) {}
 
-TEST(TypeTraits, IsMemberPtr) {
-}
+TEST(TypeTraits, IsMemberPtr) {}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

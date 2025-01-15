@@ -369,6 +369,71 @@ constexpr bool is_corresponding_member(M1 S1::*m1, M2 S2::*m2) noexcept;
 // 20.15.10, constant evaluation context
 constexpr bool is_constant_evaluated() noexcept;
 
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+// forward declarations
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+// definitions start here
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 // 20.15.4.1, primary type categories
 // is_void
 template <class T> struct is_void_base : public false_type {};
@@ -436,10 +501,78 @@ template <class T> struct is_rvalue_reference<T&&> : public true_type {};
 // is_member_object_pointer
 template <class T> struct is_member_object_pointer_base : public false_type {};
 template <class C, class Ret>
-struct is_member_object_pointer_base<Ret C::*> : public true_type {};
+struct is_member_object_pointer_base<Ret C::*>
+    : public bool_constant<!is_member_function_pointer_v<Ret C::*>> {};
 template <class T>
-struct is_member_object_pointer
-    : public is_member_object_pointer_base<remove_cv_t<T>> {};
+struct is_member_object_pointer : public is_member_object_pointer_base<T> {};
+
+// is_member_function_pointer
+
+template <class T> struct _remove_fp_qual {
+  using type = T;
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...)> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const&> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const&&> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const & noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) const && noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...)&> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) & noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) &&> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) && noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class C, class Ret, class... Args>
+struct _remove_fp_qual<Ret (C::*)(Args...) noexcept> {
+  using type = Ret (C::*)(Args...);
+};
+
+template <class T> using _remove_fp_qual_t = _remove_fp_qual<T>::type;
 
 template <class T>
 struct is_member_function_pointer_base : public false_type {};
@@ -448,7 +581,7 @@ struct is_member_function_pointer_base<Ret (C::*)(Args...)> : public true_type {
 };
 template <class T>
 struct is_member_function_pointer
-    : public is_member_function_pointer_base<remove_cv_t<T>> {};
+    : public is_member_function_pointer_base<_remove_fp_qual_t<T>> {};
 
 // is_enum
 template <class T> struct is_enum : public bool_constant<__is_enum(T)> {};
@@ -462,74 +595,66 @@ template <class T> struct is_class : public bool_constant<__is_class(T)> {};
 // is_function
 // ignores lambdas, `std::function`, function ptrs
 
-template <class T> struct _remove_f_const_noexcept {
+template <class T> struct _remove_f_qual {
   using type = T;
 };
 
-template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args...) const noexcept> {
+template <class Ret, class... Args> struct _remove_f_qual<Ret(Args...)> {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_qual<Ret(Args...) const> {
   using type = Ret(Args...);
 };
 
 template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args...) noexcept> {
+struct _remove_f_qual<Ret(Args...) const noexcept> {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args> struct _remove_f_qual<Ret(Args...) const&> {
   using type = Ret(Args...);
 };
 
 template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args...) const> {
+struct _remove_f_qual<Ret(Args...) const&&> {
   using type = Ret(Args...);
 };
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wambiguous-ellipsis"
-
 template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args......) const noexcept> {
-  using type = Ret(Args......);
-};
-
-template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args......) noexcept> {
-  using type = Ret(Args......);
-};
-
-template <class Ret, class... Args>
-struct _remove_f_const_noexcept<Ret(Args......) const> {
-  using type = Ret(Args......);
-};
-
-#pragma clang diagnostic pop
-
-template <class T>
-using _remove_f_const_noexcept_t = _remove_f_const_noexcept<T>::type;
-
-template <class T> struct _remove_f_refq {
-  using type = T;
-};
-
-template <class Ret, class... Args> struct _remove_f_refq<Ret(Args...)&> {
+struct _remove_f_qual<Ret(Args...) const & noexcept> {
   using type = Ret(Args...);
 };
 
-template <class Ret, class... Args> struct _remove_f_refq<Ret(Args...) &&> {
+template <class Ret, class... Args>
+struct _remove_f_qual<Ret(Args...) const && noexcept> {
   using type = Ret(Args...);
 };
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wambiguous-ellipsis"
-
-template <class Ret, class... Args> struct _remove_f_refq<Ret(Args......)&> {
-  using type = Ret(Args......);
+template <class Ret, class... Args> struct _remove_f_qual<Ret(Args...)&> {
+  using type = Ret(Args...);
 };
 
-template <class Ret, class... Args> struct _remove_f_refq<Ret(Args......) &&> {
-  using type = Ret(Args......);
+template <class Ret, class... Args>
+struct _remove_f_qual<Ret(Args...) & noexcept> {
+  using type = Ret(Args...);
 };
 
-#pragma clang diagnostic pop
+template <class Ret, class... Args> struct _remove_f_qual<Ret(Args...) &&> {
+  using type = Ret(Args...);
+};
 
-template <class T> using _remove_f_refq_t = _remove_f_refq<T>::type;
+template <class Ret, class... Args>
+struct _remove_f_qual<Ret(Args...) && noexcept> {
+  using type = Ret(Args...);
+};
+
+template <class Ret, class... Args>
+struct _remove_f_qual<Ret(Args...) noexcept> {
+  using type = Ret(Args...);
+};
+
+template <class T> using _remove_f_qual_t = _remove_f_qual<T>::type;
 
 template <class T> struct is_function_base : public false_type {};
 
@@ -546,8 +671,7 @@ struct is_function_base<Ret(Args...)> : public true_type {};
 
 template <class T>
 struct is_function
-    : public is_function_base<remove_reference_t<
-          remove_cv_t<_remove_f_const_noexcept_t<_remove_f_refq_t<T>>>>> {};
+    : public is_function_base<remove_reference_t<_remove_f_qual_t<T>>> {};
 
 // 20.15.4.2, composite type categories
 template <class T>
