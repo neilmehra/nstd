@@ -239,6 +239,16 @@ TEST(TypeTraits, IsRvalueRef) {
   EXPECT_TRUE(nstd::is_rvalue_reference_v<const volatile int&&>);
 }
 
+template<class T> struct mob : public nstd::false_type {};
+template<class C, class T> struct mob<T C::*> : public nstd::true_type {};
+
+TEST(TypeTraits, IsMemberObjectPtr) {
+}
+
+TEST(TypeTraits, IsMemberFunctionPtr) {
+
+}
+
 TEST(TypeTraits, IsFunction) {
   struct Foo {
     static void s_foo_member() {};
@@ -270,13 +280,24 @@ TEST(TypeTraits, IsFunction) {
 }
 
 TEST(TypeTraits, IsReference) {
-  EXPECT_FALSE(nstd::is_lvalue_reference<int>::value);
-  EXPECT_TRUE(nstd::is_lvalue_reference<int&>::value);
-  EXPECT_FALSE(nstd::is_lvalue_reference<int&&>::value);
+}
 
-  EXPECT_FALSE(nstd::is_rvalue_reference<int>::value);
-  EXPECT_FALSE(nstd::is_rvalue_reference<int&>::value);
-  EXPECT_TRUE(nstd::is_rvalue_reference<int&&>::value);
+TEST(TypeTraits, IsArithmetic) {
+}
+
+TEST(TypeTraits, IsFundamental) {
+}
+
+TEST(TypeTraits, IsObject) {
+}
+
+TEST(TypeTraits, IsScalar) {
+}
+
+TEST(TypeTraits, IsCompound) {
+}
+
+TEST(TypeTraits, IsMemberPtr) {
 }
 
 int main(int argc, char** argv) {

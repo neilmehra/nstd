@@ -5,7 +5,6 @@
 
 namespace nstd {
 
-
 // 20.15.3, Helper Types
 
 template <class T, T v> struct integral_constant {
@@ -20,7 +19,6 @@ template <class T, T v> struct integral_constant {
 template <bool B> using bool_constant = integral_constant<bool, B>;
 using true_type = bool_constant<true>;
 using false_type = bool_constant<false>;
-
 
 // 20.15.4.1, primary type categories
 template <class T> struct is_void;
@@ -371,7 +369,6 @@ constexpr bool is_corresponding_member(M1 S1::*m1, M2 S2::*m2) noexcept;
 // 20.15.10, constant evaluation context
 constexpr bool is_constant_evaluated() noexcept;
 
-
 // 20.15.4.1, primary type categories
 // is_void
 template <class T> struct is_void_base : public false_type {};
@@ -396,6 +393,7 @@ template <> struct is_integral_base<short> : public true_type {};
 template <> struct is_integral_base<int> : public true_type {};
 template <> struct is_integral_base<long> : public true_type {};
 template <> struct is_integral_base<long long> : public true_type {};
+template <> struct is_integral_base<unsigned char> : public true_type {};
 template <> struct is_integral_base<unsigned short> : public true_type {};
 template <> struct is_integral_base<unsigned int> : public true_type {};
 template <> struct is_integral_base<unsigned long> : public true_type {};
@@ -410,7 +408,6 @@ template <> struct is_floating_point_base<double> : public true_type {};
 template <> struct is_floating_point_base<long double> : public true_type {};
 template <class T>
 struct is_floating_point : public is_floating_point_base<remove_cv_t<T>> {};
-
 
 // is_array
 template <class T> struct is_array_base : public false_type {};
@@ -436,9 +433,22 @@ template <class T> struct is_lvalue_reference<T&> : public true_type {};
 template <class T> struct is_rvalue_reference : public false_type {};
 template <class T> struct is_rvalue_reference<T&&> : public true_type {};
 
-template <class T> struct is_member_object_pointer;
+// is_member_object_pointer
+template <class T> struct is_member_object_pointer_base : public false_type {};
+template <class C, class Ret>
+struct is_member_object_pointer_base<Ret C::*> : public true_type {};
+template <class T>
+struct is_member_object_pointer
+    : public is_member_object_pointer_base<remove_cv_t<T>> {};
 
-template <class T> struct is_member_function_pointer;
+template <class T>
+struct is_member_function_pointer_base : public false_type {};
+template <class C, class Ret, class... Args>
+struct is_member_function_pointer_base<Ret (C::*)(Args...)> : public true_type {
+};
+template <class T>
+struct is_member_function_pointer
+    : public is_member_function_pointer_base<remove_cv_t<T>> {};
 
 // is_enum
 template <class T> struct is_enum : public bool_constant<__is_enum(T)> {};
@@ -539,11 +549,87 @@ struct is_function
     : public is_function_base<remove_reference_t<
           remove_cv_t<_remove_f_const_noexcept_t<_remove_f_refq_t<T>>>>> {};
 
+// 20.15.4.2, composite type categories
+template <class T>
+struct is_reference : public bool_constant<is_lvalue_reference_v<T> ||
+                                           is_rvalue_reference_v<T>> {};
 
+template <class T>
+struct is_arithmetic
+    : public bool_constant<is_integral_v<T> || is_floating_point_v<T>> {};
 
+template <class T>
+struct is_fundamental
+    : public bool_constant<is_void_v<T> || is_arithmetic_v<T> ||
+                           is_null_pointer_v<T>> {};
 
+template <class T>
+struct is_object : public bool_constant<is_scalar_v<T> || is_array_v<T> ||
+                                        is_union_v<T> || is_class_v<T>> {};
+template <class T>
+struct is_scalar
+    : public bool_constant<is_arithmetic_v<T> || is_null_pointer_v<T> ||
+                           is_member_pointer_v<T> || is_pointer_v<T> ||
+                           is_enum_v<T>> {};
 
+template <class T>
+struct is_compound
+    : public bool_constant<is_member_pointer_v<T> || is_pointer_v<T> ||
+                           is_enum_v<T> || is_array_v<T> || is_union_v<T> ||
+                           is_class_v<T> || is_reference_v<T> ||
+                           is_function_v<T>> {};
 
+template <class T>
+struct is_member_pointer
+    : public bool_constant<is_member_object_pointer_v<T> ||
+                           is_member_function_pointer_v<T>> {};
+
+// 20.15.4.3, type properties
+template <class T> struct is_const;
+template <class T> struct is_volatile;
+template <class T> struct is_trivial;
+template <class T> struct is_trivially_copyable;
+template <class T> struct is_standard_layout;
+template <class T> struct is_empty;
+template <class T> struct is_polymorphic;
+template <class T> struct is_abstract;
+template <class T> struct is_final;
+template <class T> struct is_aggregate;
+template <class T> struct is_signed;
+template <class T> struct is_unsigned;
+template <class T> struct is_bounded_array;
+template <class T> struct is_unbounded_array;
+template <class T, class... Args> struct is_constructible;
+template <class T> struct is_default_constructible;
+template <class T> struct is_copy_constructible;
+template <class T> struct is_move_constructible;
+template <class T, class U> struct is_assignable;
+template <class T> struct is_copy_assignable;
+template <class T> struct is_move_assignable;
+template <class T, class U> struct is_swappable_with;
+template <class T> struct is_swappable;
+template <class T> struct is_destructible;
+template <class T, class... Args> struct is_trivially_constructible;
+template <class T> struct is_trivially_default_constructible;
+template <class T> struct is_trivially_copy_constructible;
+template <class T> struct is_trivially_move_constructible;
+template <class T, class U> struct is_trivially_assignable;
+template <class T> struct is_trivially_copy_assignable;
+template <class T> struct is_trivially_move_assignable;
+template <class T> struct is_trivially_destructible;
+template <class T, class... Args> struct is_nothrow_constructible;
+template <class T> struct is_nothrow_default_constructible;
+template <class T> struct is_nothrow_copy_constructible;
+template <class T> struct is_nothrow_move_constructible;
+template <class T, class U> struct is_nothrow_assignable;
+template <class T> struct is_nothrow_copy_assignable;
+template <class T> struct is_nothrow_move_assignable;
+template <class T, class U> struct is_nothrow_swappable_with;
+template <class T> struct is_nothrow_swappable;
+template <class T> struct is_nothrow_destructible;
+template <class T> struct has_virtual_destructor;
+template <class T> struct has_unique_object_representations;
+template <class T> struct has_strong_structural_equality;
 
 //
 //
@@ -647,9 +733,9 @@ template <class T> struct remove_reference<T&> {
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
-// note that this is a bit weird. if T is a ref-type, then we follow through
-// with reference collapsing rules rather than it actually being an rvalue ref
-// e.g add_rvalue_reference<T&>::type is T&
+// if T is a ref-type, then we follow through with reference collapsing rules
+// rather than it actually being an rvalue ref e.g
+// add_rvalue_reference<T&>::type is T&
 template <class T> struct add_lvalue_reference {
   using type = T&;
 };
@@ -664,6 +750,7 @@ using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
 template <class T>
 using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
 
-
+template <class T, class U> struct is_same : public false_type {};
+template <class T> struct is_same<T, T> : public true_type {};
 
 } // namespace nstd
