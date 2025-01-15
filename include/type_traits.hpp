@@ -710,19 +710,21 @@ struct is_member_pointer
                            is_member_function_pointer_v<T>> {};
 
 // 20.15.4.3, type properties
+// is_const
 template <class T> struct is_const : public false_type {};
 template <class T> struct is_const<const T> : public true_type {};
 template <class T> struct is_const<const volatile T> : public true_type {};
 
+// is_volatile
 template <class T> struct is_volatile : public false_type {};
 template <class T> struct is_volatile<volatile T> : public true_type {};
 template <class T> struct is_volatile<const volatile T> : public true_type {};
 
+// type properties w/ compiler extensions
 template <class T> struct is_trivial : public bool_constant<__is_trivial(T)> {};
 template <class T>
 struct is_trivially_copyable
     : public bool_constant<__is_trivially_copyable(T)> {};
-
 template <class T>
 struct is_standard_layout : public bool_constant<__is_standard_layout(T)> {};
 template <class T> struct is_empty : public bool_constant<__is_empty(T)> {};
@@ -733,16 +735,25 @@ struct is_abstract : public bool_constant<__is_abstract(T)> {};
 template <class T> struct is_final : public bool_constant<__is_final(T)> {};
 template <class T>
 struct is_aggregate : public bool_constant<__is_aggregate(T)> {};
+
+// is_(un)signed
 template <class T>
 struct is_signed : public bool_constant<is_arithmetic_v<T> && (T(-1) < T(0))> {
 };
+
 template <class T>
 struct is_unsigned : public bool_constant<!is_signed_v<T>> {};
-template <class T> struct is_bounded_array;
-template <class T> struct is_unbounded_array;
+
+// (un)bounded array
+template <class T> struct is_bounded_array : public false_type {};
+
+template <class T, std::size_t N>
+struct is_bounded_array<T[N]> : public true_type {};
+template <class T> struct is_unbounded_array : public false_type {};
+template <class T> struct is_unbounded_array<T[]> : public true_type {};
 
 // Operations
-template <class T, class... Args> struct is_constructible;
+template <class T, class... Args> struct is_constructible : public bool_constant<__is_constructible(T)> {};
 template <class T> struct is_default_constructible;
 template <class T> struct is_copy_constructible;
 template <class T> struct is_move_constructible;
