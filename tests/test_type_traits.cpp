@@ -29,30 +29,40 @@ TEST(TypeTraits, RemoveCV) {
 
   EXPECT_TRUE((nstd::is_same_v<nstd::remove_const_t<int>, int>));
   EXPECT_TRUE((nstd::is_same_v<nstd::remove_const_t<const int>, int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::remove_const_t<volatile int>, volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::remove_const_t<const volatile int>, volatile int>));
+  EXPECT_TRUE(
+      (nstd::is_same_v<nstd::remove_const_t<volatile int>, volatile int>));
+  EXPECT_TRUE((
+      nstd::is_same_v<nstd::remove_const_t<const volatile int>, volatile int>));
 
   EXPECT_TRUE((nstd::is_same_v<nstd::remove_volatile_t<int>, int>));
   EXPECT_TRUE((nstd::is_same_v<nstd::remove_volatile_t<volatile int>, int>));
   EXPECT_TRUE((nstd::is_same_v<nstd::remove_volatile_t<const int>, const int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::remove_volatile_t<volatile const int>, const int>));
+  EXPECT_TRUE((
+      nstd::is_same_v<nstd::remove_volatile_t<volatile const int>, const int>));
 }
 
 TEST(TypeTraits, AddCV) {
   EXPECT_TRUE((nstd::is_same_v<nstd::add_cv_t<int>, const volatile int>));
   EXPECT_TRUE((nstd::is_same_v<nstd::add_cv_t<const int>, const volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_cv_t<volatile int>, const volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_cv_t<const volatile int>, const volatile int>));
+  EXPECT_TRUE(
+      (nstd::is_same_v<nstd::add_cv_t<volatile int>, const volatile int>));
+  EXPECT_TRUE((
+      nstd::is_same_v<nstd::add_cv_t<const volatile int>, const volatile int>));
 
   EXPECT_TRUE((nstd::is_same_v<nstd::add_const_t<int>, const int>));
   EXPECT_TRUE((nstd::is_same_v<nstd::add_const_t<const int>, const int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_const_t<volatile int>, const volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_const_t<const volatile int>, const volatile int>));
+  EXPECT_TRUE(
+      (nstd::is_same_v<nstd::add_const_t<volatile int>, const volatile int>));
+  EXPECT_TRUE((nstd::is_same_v<nstd::add_const_t<const volatile int>,
+                               const volatile int>));
 
   EXPECT_TRUE((nstd::is_same_v<nstd::add_volatile_t<int>, volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_volatile_t<volatile int>, volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_volatile_t<const int>, const volatile int>));
-  EXPECT_TRUE((nstd::is_same_v<nstd::add_volatile_t<volatile const int>, const volatile int>));
+  EXPECT_TRUE(
+      (nstd::is_same_v<nstd::add_volatile_t<volatile int>, volatile int>));
+  EXPECT_TRUE(
+      (nstd::is_same_v<nstd::add_volatile_t<const int>, const volatile int>));
+  EXPECT_TRUE((nstd::is_same_v<nstd::add_volatile_t<volatile const int>,
+                               const volatile int>));
 }
 
 TEST(TypeTraits, RemoveRef) {
@@ -126,7 +136,6 @@ TEST(TypeTraits, IsIntegral) {
   EXPECT_TRUE((nstd::is_integral_v<volatile unsigned long>));
   EXPECT_TRUE((nstd::is_integral_v<volatile unsigned long long>));
 
-
   EXPECT_TRUE((nstd::is_integral_v<const volatile bool>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile char>));
   EXPECT_TRUE((nstd::is_integral_v<const volatile char8_t>));
@@ -161,7 +170,6 @@ TEST(TypeTraits, IsFloatingPoint) {
   EXPECT_TRUE((nstd::is_floating_point_v<const volatile long double>));
 }
 
-
 TEST(TypeTraits, IsArray) {
   EXPECT_TRUE(nstd::is_array_v<int[]>);
   EXPECT_TRUE(nstd::is_array_v<int[10]>);
@@ -171,6 +179,64 @@ TEST(TypeTraits, IsArray) {
   EXPECT_TRUE(nstd::is_array_v<volatile int[10]>);
   EXPECT_TRUE(nstd::is_array_v<const volatile int[]>);
   EXPECT_TRUE(nstd::is_array_v<const volatile int[10]>);
+}
+
+TEST(TypeTraits, IsPointer) {
+  void foo();
+  void goo() noexcept;
+  EXPECT_TRUE(nstd::is_pointer_v<int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<void*>);
+  EXPECT_TRUE(nstd::is_pointer_v<const int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<const int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<const int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<decltype(&foo)>);
+  EXPECT_TRUE(nstd::is_pointer_v<decltype(&goo)>);
+
+  EXPECT_TRUE(nstd::is_pointer_v<volatile int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile void*>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile const int*>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile const int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile const int* const>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile decltype(&foo)>);
+  EXPECT_TRUE(nstd::is_pointer_v<volatile decltype(&goo)>);
+}
+
+TEST(TypeTraits, IsLvalueRef) {
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<int>);
+  EXPECT_TRUE(nstd::is_lvalue_reference_v<int&>);
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<int&&>);
+
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<const int>);
+  EXPECT_TRUE(nstd::is_lvalue_reference_v<const int&>);
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<const int&&>);
+
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<volatile int>);
+  EXPECT_TRUE(nstd::is_lvalue_reference_v<volatile int&>);
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<volatile int&&>);
+
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<const volatile int>);
+  EXPECT_TRUE(nstd::is_lvalue_reference_v<const volatile int&>);
+  EXPECT_FALSE(nstd::is_lvalue_reference_v<const volatile int&&>);
+}
+
+TEST(TypeTraits, IsRvalueRef) {
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<int>);
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<int&>);
+  EXPECT_TRUE(nstd::is_rvalue_reference_v<int&&>);
+
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<const int>);
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<const int&>);
+  EXPECT_TRUE(nstd::is_rvalue_reference_v<const int&&>);
+
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<volatile int>);
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<volatile int&>);
+  EXPECT_TRUE(nstd::is_rvalue_reference_v<volatile int&&>);
+
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<const volatile int>);
+  EXPECT_FALSE(nstd::is_rvalue_reference_v<const volatile int&>);
+  EXPECT_TRUE(nstd::is_rvalue_reference_v<const volatile int&&>);
 }
 
 TEST(TypeTraits, IsFunction) {
@@ -188,7 +254,9 @@ TEST(TypeTraits, IsFunction) {
 #pragma clang diagnostic pop
   int goo(int, int);
   int loo(int...);
-  int aoo(int, int...) noexcept;
+  int aoo(int, int...);
+  int lmao(int) noexcept;
+  int lmao2(int);
 
   EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member)>);
   EXPECT_TRUE(nstd::is_function_v<decltype(Foo::s_foo_member_c)>);
@@ -210,7 +278,6 @@ TEST(TypeTraits, IsReference) {
   EXPECT_FALSE(nstd::is_rvalue_reference<int&>::value);
   EXPECT_TRUE(nstd::is_rvalue_reference<int&&>::value);
 }
-
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
