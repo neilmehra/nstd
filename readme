@@ -1,2 +1,1 @@
-run ./gen.sh for new project
-run ./run.sh to re-build and test
+Educational implementation of features from the C++20 Standard (N4861)
