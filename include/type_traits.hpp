@@ -21,6 +21,44 @@ template <bool B> using bool_constant = integral_constant<bool, B>;
 using true_type = bool_constant<true>;
 using false_type = bool_constant<false>;
 
+// helper functions for evaluating bool variadic templates with
+// checks if T is in Args...
+template <bool T, bool... Args> struct _contains;
+
+template <bool T> struct _contains<T> : public false_type {};
+
+template <bool T, bool... Args>
+struct _contains<T, T, Args...> : public true_type {};
+
+template <bool T, bool U, bool... Args>
+struct _contains<T, U, Args...> : public _contains<T, Args...> {};
+
+template <bool T, bool... Args>
+constexpr bool _contains_v = _contains<T, Args...>::value;
+
+// checks if true_type is in Args
+template <bool... Args> struct _or : public _contains<true, Args...> {};
+
+template <bool... Args> constexpr bool _or_v = _or<Args...>{};
+
+// checks if T = all of Args...
+template <bool T, bool... Args> struct _all;
+
+template <bool T> struct _all<T> : public true_type {};
+
+template <bool T, bool... Args>
+struct _all<T, T, Args...> : public _all<T, Args...> {};
+
+template <bool T, bool U, bool... Args>
+struct _all<T, U, Args...> : public false_type {};
+
+template <bool T, bool... Args> constexpr bool _all_v = _all<T, Args...>::value;
+
+// checks if all of Args is true_type
+template <bool... Args> struct _and : public _all<true, Args...> {};
+
+template <bool... Args> constexpr bool _and_v = _and<Args...>{};
+
 // 20.15.4.1, primary type categories
 template <class T> struct is_void;
 template <class T> struct is_null_pointer;
@@ -677,38 +715,34 @@ struct is_function
 
 // 20.15.4.2, composite type categories
 template <class T>
-struct is_reference : public bool_constant<is_lvalue_reference_v<T> ||
-                                           is_rvalue_reference_v<T>> {};
+struct is_reference
+    : public _or<is_lvalue_reference_v<T>, is_rvalue_reference_v<T>> {};
 
 template <class T>
-struct is_arithmetic
-    : public bool_constant<is_integral_v<T> || is_floating_point_v<T>> {};
+struct is_arithmetic : public _or<is_integral_v<T>, is_floating_point_v<T>> {};
 
 template <class T>
 struct is_fundamental
-    : public bool_constant<is_void_v<T> || is_arithmetic_v<T> ||
-                           is_null_pointer_v<T>> {};
+    : public _or<is_void_v<T>, is_arithmetic_v<T>, is_null_pointer_v<T>> {};
 
 template <class T>
-struct is_object : public bool_constant<is_scalar_v<T> || is_array_v<T> ||
-                                        is_union_v<T> || is_class_v<T>> {};
+struct is_object
+    : public _or<is_scalar_v<T>, is_array_v<T>, is_union_v<T>, is_class_v<T>> {
+};
 template <class T>
 struct is_scalar
-    : public bool_constant<is_arithmetic_v<T> || is_null_pointer_v<T> ||
-                           is_member_pointer_v<T> || is_pointer_v<T> ||
-                           is_enum_v<T>> {};
+    : public _or<is_arithmetic_v<T>, is_null_pointer_v<T>,
+                 is_member_pointer_v<T>, is_pointer_v<T>, is_enum_v<T>> {};
 
 template <class T>
 struct is_compound
-    : public bool_constant<is_member_pointer_v<T> || is_pointer_v<T> ||
-                           is_enum_v<T> || is_array_v<T> || is_union_v<T> ||
-                           is_class_v<T> || is_reference_v<T> ||
-                           is_function_v<T>> {};
+    : public _or<is_member_pointer_v<T>, is_pointer_v<T>, is_enum_v<T>,
+                 is_array_v<T>, is_union_v<T>, is_class_v<T>, is_reference_v<T>,
+                 is_function_v<T>> {};
 
 template <class T>
-struct is_member_pointer
-    : public bool_constant<is_member_object_pointer_v<T> ||
-                           is_member_function_pointer_v<T>> {};
+struct is_member_pointer : public _or<is_member_object_pointer_v<T>,
+                                      is_member_function_pointer_v<T>> {};
 
 // 20.15.4.3, type properties
 // is_const
@@ -739,12 +773,12 @@ struct is_aggregate : public bool_constant<__is_aggregate(T)> {};
 
 // is_(un)signed
 template <class T>
-struct is_signed : public bool_constant<is_arithmetic_v<T> && (T(-1) < T(0))> {
-};
+struct is_signed
+    : public _and<is_arithmetic<T>, bool_constant<(T(-1) < T(0))>> {};
 
 template <class T>
 struct is_unsigned
-    : public bool_constant<is_arithmetic_v<T> && (T(-1) > T(0))> {};
+    : public _and<is_arithmetic<T>, bool_constant<(T(-1) > T(0))>> {};
 
 // (un)bounded array
 template <class T> struct is_bounded_array : public false_type {};
@@ -807,8 +841,19 @@ struct is_swappable_with : public is_swappable_base<T, U> {};
 template <class T> struct is_swappable : public is_swappable_with<T&, T&> {};
 
 // destructor
+
+template <class, class = void>
+struct is_destructible_base : public false_type {};
+
+// todo: why std::declval<T&> instead of std::declval<T>?
 template <class T>
-struct is_destructible : public bool_constant<__is_destructible(T)> {};
+struct is_destructible_base<T, void_t<decltype(std::declval<T&>().~T())>>
+    : public true_type {};
+
+template <class T>
+struct is_destructible
+    : public _or<nstd::is_reference_v<T>,
+                 is_destructible_base<std::remove_all_extents_t<T>>::value> {};
 
 // trivial
 template <class T, class... Args>
@@ -838,13 +883,9 @@ struct is_trivially_destructible
 // nothrow
 //
 
-
-
 template <typename T, typename... Args>
 concept nothrow_constructible = requires {
-
-
-    { T(std::declval<Args>()...) } noexcept;
+  { T(std::declval<Args>()...) } noexcept;
 };
 
 template <class, class, class...>
@@ -861,20 +902,6 @@ struct is_nothrow_constructible
 
 template <class T, class... Args>
 constexpr bool isn = is_nothrow_constructible<T, Args...>{};
-
-struct A {
-  A(int, int) noexcept;
-};
-struct B {
-  B(int);
-};
-struct C {
-  C() = delete;
-};
-
-constexpr bool a = isn<A, int, int>;
-constexpr bool b = isn<B, int>;
-constexpr bool c = isn<C>;
 
 template <class T>
 struct is_nothrow_default_constructible
@@ -1052,7 +1079,8 @@ template <class T> struct remove_reference<T&> {
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
-// This follows through w/ ref collapsing rules (add_lvalue_reference<T&>::type is T&)
+// This follows through w/ ref collapsing rules (add_lvalue_reference<T&>::type
+// is T&)
 template <class T> struct add_lvalue_reference {
   using type = T&;
 };
