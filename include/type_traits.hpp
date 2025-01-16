@@ -127,7 +127,6 @@ template <class T> struct is_nothrow_swappable;
 template <class T> struct is_nothrow_destructible;
 template <class T> struct has_virtual_destructor;
 template <class T> struct has_unique_object_representations;
-template <class T> struct has_strong_structural_equality;
 // 20.15.5, type property queries
 template <class T> struct alignment_of;
 template <class T> struct rank;
@@ -358,9 +357,6 @@ inline constexpr bool has_virtual_destructor_v =
 template <class T>
 inline constexpr bool has_unique_object_representations_v =
     has_unique_object_representations<T>::value;
-template <class T>
-inline constexpr bool has_strong_structural_equality_v =
-    has_strong_structural_equality<T>::value;
 // 20.15.5, type property queries
 template <class T>
 inline constexpr size_t alignment_of_v = alignment_of<T>::value;
@@ -967,6 +963,38 @@ template <class T>
 struct has_unique_object_representations
     : public bool_constant<__has_unique_object_representations(
           std::remove_all_extents_t<T>)> {};
+
+// 20.15.5, type property queries
+
+template <class T>
+struct alignment_of : public integral_constant<std::size_t, alignof(T)> {};
+
+template <class T> struct rank : public integral_constant<std::size_t, 0> {};
+template <class T>
+struct rank<T[]> : public integral_constant<std::size_t, 1 + rank<T>::value> {};
+template <class T, std::size_t N>
+struct rank<T[N]> : public integral_constant<std::size_t, 1 + rank<T>::value> {
+};
+
+constexpr std::size_t a = rank_v<int[1][1][1][1]>; // 4
+
+template <class T, unsigned I>
+struct extent : public integral_constant<std::size_t, 0> {};
+template <class T, std::size_t N>
+struct extent<T[N], 0> : public integral_constant<std::size_t, N> {};
+template <class T, unsigned I, std::size_t N>
+struct extent<T[N], I> : extent<T, I - 1> {};
+template <class T>
+struct extent<T[], 0> : public integral_constant<std::size_t, 0> {};
+template <class T, unsigned I>
+struct extent<T[], I> : public extent<T, I - 1> {};
+
+constexpr std::size_t b = extent_v<int[], 0>; // 4
+
+// 20.15.6
+
+template <class T, class U> struct is_same : public false_type {};
+template <class T> struct is_same<T, T> : public true_type {};
 
 //
 //
