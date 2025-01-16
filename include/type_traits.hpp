@@ -39,7 +39,7 @@ constexpr bool _contains_v = _contains<T, Args...>::value;
 // checks if true_type is in Args
 template <bool... Args> struct _or : public _contains<true, Args...> {};
 
-template <bool... Args> constexpr bool _or_v = _or<Args...>{};
+template <bool... Args> constexpr bool _or_v = _or<Args...>::value;
 
 // checks if T = all of Args...
 template <bool T, bool... Args> struct _all;
@@ -57,7 +57,7 @@ template <bool T, bool... Args> constexpr bool _all_v = _all<T, Args...>::value;
 // checks if all of Args is true_type
 template <bool... Args> struct _and : public _all<true, Args...> {};
 
-template <bool... Args> constexpr bool _and_v = _and<Args...>{};
+template <bool... Args> constexpr bool _and_v = _and<Args...>::value;
 
 // 20.15.4.1, primary type categories
 template <class T> struct is_void;
@@ -773,12 +773,10 @@ struct is_aggregate : public bool_constant<__is_aggregate(T)> {};
 
 // is_(un)signed
 template <class T>
-struct is_signed
-    : public _and<is_arithmetic<T>, bool_constant<(T(-1) < T(0))>> {};
+struct is_signed : public _and<is_arithmetic_v<T>, (T(-1) < T(0))> {};
 
 template <class T>
-struct is_unsigned
-    : public _and<is_arithmetic<T>, bool_constant<(T(-1) > T(0))>> {};
+struct is_unsigned : public _and<is_arithmetic_v<T>, (T(-1) > T(0))> {};
 
 // (un)bounded array
 template <class T> struct is_bounded_array : public false_type {};
@@ -947,35 +945,28 @@ struct is_nothrow_swappable_with : public is_nothrow_swappable_base<T, U> {};
 template <class T>
 struct is_nothrow_swappable : public is_nothrow_swappable_with<T&, T&> {};
 
-template <class T> struct is_nothrow_destructible;
+template <class, class = void>
+struct is_nothrow_destructible_base : public false_type {};
+
+template <class T>
+struct is_nothrow_destructible_base<
+    T, void_t<std::enable_if_t<noexcept(std::declval<T&>().~T())>>>
+    : public true_type {};
+
+template <class T>
+struct is_nothrow_destructible
+    : public _or<
+          nstd::is_reference_v<T>,
+          is_nothrow_destructible_base<std::remove_all_extents_t<T>>::value> {};
 
 //
 template <class T>
 struct has_virtual_destructor
     : public bool_constant<__has_virtual_destructor(T)> {};
-template <class T> struct has_unique_object_representations;
-template <class T> struct has_strong_structural_equality;
-
-// Nothrow destructible:
 template <class T>
-struct is_nothrow_destructible
-    : public std::bool_constant<noexcept(std::declval<T&>().~T())> {};
-
-template <class T> constexpr bool ist = is_nothrow_destructible<T>::value;
-
-struct D {
-  ~D() = delete;
-};
-struct E {
-  ~E() noexcept(false) { throw 1; }
-};
-struct F {
-  ~F() noexcept {}
-};
-
-constexpr bool dd = ist<D>;
-constexpr bool de = ist<E>;
-constexpr bool df = ist<F>;
+struct has_unique_object_representations
+    : public bool_constant<__has_unique_object_representations(
+          std::remove_all_extents_t<T>)> {};
 
 //
 //
