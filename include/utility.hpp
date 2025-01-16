@@ -20,7 +20,7 @@ template <class T> void as_const(const T&&) = delete;
 // 20.2.6, declval
 // TODO understand decltype(())
 // todo this doesnt work
-template <class T> add_rvalue_reference_t<T> declval() noexcept {}
+// template <class T> add_rvalue_reference_t<T> declval() noexcept {}
 
 // as unevaluated operand
 // 20.3, Compile-time integer sequences

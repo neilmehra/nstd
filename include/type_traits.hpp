@@ -1,5 +1,6 @@
 #pragma once
 
+#include "declval.hpp"
 #include <cstddef>
 #include <type_traits>
 
@@ -742,7 +743,8 @@ struct is_signed : public bool_constant<is_arithmetic_v<T> && (T(-1) < T(0))> {
 };
 
 template <class T>
-struct is_unsigned : public bool_constant<!is_signed_v<T>> {};
+struct is_unsigned
+    : public bool_constant<is_arithmetic_v<T> && (T(-1) > T(0))> {};
 
 // (un)bounded array
 template <class T> struct is_bounded_array : public false_type {};
@@ -755,16 +757,20 @@ template <class T> struct is_unbounded_array<T[]> : public true_type {};
 // Operations
 //
 // compiler intrinsics that im allowed to use:
-//__is_constructible
-//__is_assignable
 //__is_destructible
 //__is_trivially_constructible
 //__is_trivially_destructible
 //__is_nothrow_constructible
 
 // constructible
+template <class, class, class...>
+struct is_constructible_base : public false_type {};
 template <class T, class... Args>
-struct is_constructible : public bool_constant<__is_constructible(T)> {};
+struct is_constructible_base<void_t<decltype(T(std::declval<Args>()...))>, T,
+                             Args...> : public true_type {};
+
+template <class T, class... Args>
+struct is_constructible : public is_constructible_base<void, T, Args...> {};
 template <class T>
 struct is_default_constructible : public is_constructible<T> {};
 template <class T>
@@ -774,9 +780,17 @@ template <class T>
 struct is_move_constructible
     : public bool_constant<is_constructible_v<T, T&&>> {};
 
-// assignable
+template <class, class, class = void>
+struct is_assignable_base : public false_type {};
+
 template <class T, class U>
-struct is_assignable : public bool_constant<__is_assignable(T, U)> {};
+struct is_assignable_base<
+    T, U, void_t<decltype(std::declval<T>() = std::declval<U>())>>
+    : public true_type {};
+
+template <class T, class U>
+struct is_assignable : public is_assignable_base<T, U> {};
+
 template <class T>
 struct is_copy_assignable : public bool_constant<is_assignable_v<T, const T&>> {
 };
@@ -787,15 +801,18 @@ template <typename, typename, typename = void>
 struct is_swappable_base : false_type {};
 
 template <typename T, typename U>
-struct is_swappable_base<T, U,
-                         decltype(std::declval<T>().swap(std::declval<U>()))>
-    : true_type {};
+struct is_swappable_base<
+    T, U,
+    void_t<decltype(std::declval<T&>().swap(std::declval<U&>()),
+                    std::declval<U&>().swap(std::declval<T&>()))>> : true_type {
+};
 
 template <class T, class U>
 struct is_swappable_with : public is_swappable_base<T, U> {};
 
 template <class T> struct is_swappable : public is_swappable_with<T&, T&> {};
 
+// destructor
 template <class T>
 struct is_destructible : public bool_constant<__is_destructible(T)> {};
 
@@ -825,9 +842,46 @@ struct is_trivially_destructible
     : public bool_constant<__is_trivially_destructible(T)> {};
 
 // nothrow
+//
+
+
+
+template <typename T, typename... Args>
+concept nothrow_constructible = requires {
+
+
+    { T(std::declval<Args>()...) } noexcept;
+};
+
+template <class, class, class...>
+struct is_nothrow_constructible_base : public false_type {};
+
+template <class T, class... Args>
+struct is_nothrow_constructible_base<
+    void_t<nstd::enable_if_t<noexcept(T(nstd::declval<Args>()...))>>, T,
+    Args...> : public true_type {};
+
 template <class T, class... Args>
 struct is_nothrow_constructible
-    : public bool_constant<__is_nothrow_constructible(T, Args...)> {};
+    : public is_nothrow_constructible_base<void, T, Args...> {};
+
+template <class T, class... Args>
+constexpr bool isn = is_nothrow_constructible<T, Args...>{};
+
+struct A {
+  A(int, int) noexcept;
+};
+struct B {
+  B(int);
+};
+struct C {
+  C() = delete;
+};
+
+constexpr bool a = isn<A, int, int>;
+constexpr bool b = isn<B, int>;
+constexpr bool c = isn<C>;
+
 template <class T>
 struct is_nothrow_default_constructible
     : public bool_constant<is_nothrow_constructible_v<T>> {};
@@ -837,172 +891,70 @@ struct is_nothrow_copy_constructible
 template <class T>
 struct is_nothrow_move_constructible
     : public bool_constant<is_nothrow_constructible_v<T, T&&>> {};
-template <class T, class U> struct is_nothrow_assignable;
-template <class T> struct is_nothrow_copy_assignable;
-template <class T> struct is_nothrow_move_assignable;
-template <class T, class U> struct is_nothrow_swappable_with;
-template <class T> struct is_nothrow_swappable;
+
+template <class, class, class = void>
+struct is_nothrow_assignable_base : public false_type {};
+
+template <class T, class U>
+struct is_nothrow_assignable_base<
+    T, U,
+    void_t<std::enable_if_t<noexcept(std::declval<T>() = std::declval<U>())>>>
+    : public true_type {};
+
+template <class T, class U>
+struct is_nothrow_assignable : public is_nothrow_assignable_base<T, U> {};
+
+template <class T>
+struct is_nothrow_copy_assignable : public is_nothrow_assignable<T, const T&> {
+};
+template <class T>
+struct is_nothrow_move_assignable : public is_nothrow_assignable<T, T&&> {};
+
+template <typename, typename, typename = void>
+struct is_nothrow_swappable_base : false_type {};
+
+template <typename T, typename U>
+struct is_nothrow_swappable_base<
+    T, U,
+    void_t<std::enable_if_t<noexcept(
+        std::declval<T&>().swap(std::declval<U&>()),
+        std::declval<U&>().swap(std::declval<T&>()))>>> : true_type {};
+
+template <class T, class U>
+struct is_nothrow_swappable_with : public is_nothrow_swappable_base<T, U> {};
+
+template <class T>
+struct is_nothrow_swappable : public is_nothrow_swappable_with<T&, T&> {};
+
 template <class T> struct is_nothrow_destructible;
 
 //
-template <class T> struct has_virtual_destructor;
+template <class T>
+struct has_virtual_destructor
+    : public bool_constant<__has_virtual_destructor(T)> {};
 template <class T> struct has_unique_object_representations;
 template <class T> struct has_strong_structural_equality;
-
-// compiler intrinsics that im allowed to use:
-//__is_constructible
-//__is_assignable
-//__is_destructible
-//__is_trivially_constructible
-//__is_trivially_destructible
-//__is_nothrow_constructible
-
-template <class T, class... Args>
-struct is_constructible
-    : public std::bool_constant<__is_constructible(T, Args...)> {};
-
-// Default constructible:
-template <class T>
-struct is_default_constructible : public is_constructible<T> {};
-
-// Copy constructible:
-template <class T>
-struct is_copy_constructible
-    : public std::bool_constant<__is_constructible(T, const T&)> {};
-
-// Move constructible:
-template <class T>
-struct is_move_constructible
-    : public std::bool_constant<__is_constructible(T, T&&)> {};
-
-// Assignable:
-template <class T, class U>
-struct is_assignable : public std::bool_constant<__is_assignable(T, U)> {};
-
-// Copy assignable:
-template <class T>
-struct is_copy_assignable : public is_assignable<T&, const T&> {};
-
-// Move assignable:
-template <class T> struct is_move_assignable : public is_assignable<T&, T&&> {};
-
-// Swappable with:
-template <class T, class U> struct is_swappable_with {
-private:
-  template <typename X, typename Y>
-  static auto test(int) -> decltype(std::declval<X&>().swap(
-                                        std::declval<Y&>()), // check X.swap(Y)
-                                    std::declval<Y&>().swap(
-                                        std::declval<X&>()), // check Y.swap(X)
-                                    std::true_type{});
-
-  template <typename, typename> static auto test(...) -> std::false_type;
-
-public:
-  static constexpr bool value = decltype(test<T, U>(0))::value;
-};
-
-template <class T> struct is_swappable : is_swappable_with<T, T> {};
-
-// Destructible:
-template <class T>
-struct is_destructible : public std::bool_constant<__is_destructible(T)> {};
-
-// Trivially constructible:
-template <class T, class... Args>
-struct is_trivially_constructible
-    : public std::bool_constant<__is_trivially_constructible(T, Args...)> {};
-
-// Trivially default constructible:
-template <class T>
-struct is_trivially_default_constructible
-    : public std::bool_constant<__is_trivially_constructible(T)> {};
-
-// Trivially copy constructible:
-template <class T>
-struct is_trivially_copy_constructible
-    : public std::bool_constant<__is_trivially_constructible(T, const T&)> {};
-
-// Trivially move constructible:
-template <class T>
-struct is_trivially_move_constructible
-    : public std::bool_constant<__is_trivially_constructible(T, T&&)> {};
-
-// Trivially assignable:
-template <class T, class U>
-struct is_trivially_assignable
-    : public std::bool_constant<__is_trivially_assignable(T, U)> {};
-
-// Trivially copy assignable:
-template <class T>
-struct is_trivially_copy_assignable
-    : public is_trivially_assignable<T&, const T&> {};
-
-// Trivially move assignable:
-template <class T>
-struct is_trivially_move_assignable : public is_trivially_assignable<T&, T&&> {
-};
-
-// Trivially destructible:
-template <class T>
-struct is_trivially_destructible
-    : public std::bool_constant<__is_trivially_destructible(T)> {};
-
-// Nothrow constructible:
-template <class T, class... Args>
-struct is_nothrow_constructible
-    : public std::bool_constant<__is_nothrow_constructible(T, Args...)> {};
-
-// Nothrow default constructible:
-template <class T>
-struct is_nothrow_default_constructible : public is_nothrow_constructible<T> {};
-
-// Nothrow copy constructible:
-template <class T>
-struct is_nothrow_copy_constructible
-    : public is_nothrow_constructible<T, const T&> {};
-
-// Nothrow move constructible:
-template <class T>
-struct is_nothrow_move_constructible : public is_nothrow_constructible<T, T&&> {
-};
-
-// Nothrow assignable:
-template <class T, class U>
-struct is_nothrow_assignable : public std::bool_constant<noexcept(
-                                   std::declval<T>() = std::declval<U>())> {};
-
-// Nothrow copy assignable:
-template <class T>
-struct is_nothrow_copy_assignable : public is_nothrow_assignable<T&, const T&> {
-};
-
-// Nothrow move assignable:
-template <class T>
-struct is_nothrow_move_assignable : public is_nothrow_assignable<T&, T&&> {};
-
-// Nothrow swappable with:
-template <class T, class U> struct is_nothrow_swappable_with {
-private:
-  template <typename X, typename Y>
-  static auto test(int) -> std::bool_constant<
-      noexcept(std::declval<X&>().swap(std::declval<Y&>())) &&
-      noexcept(std::declval<Y&>().swap(std::declval<X&>()))>;
-
-  template <typename, typename> static auto test(...) -> std::false_type;
-
-public:
-  static constexpr bool value = decltype(test<T, U>(0))::value;
-};
-
-// Nothrow swappable:
-template <class T>
-struct is_nothrow_swappable : is_nothrow_swappable_with<T, T> {};
 
 // Nothrow destructible:
 template <class T>
 struct is_nothrow_destructible
     : public std::bool_constant<noexcept(std::declval<T&>().~T())> {};
+
+template <class T> constexpr bool ist = is_nothrow_destructible<T>::value;
+
+struct D {
+  ~D() = delete;
+};
+struct E {
+  ~E() noexcept(false) { throw 1; }
+};
+struct F {
+  ~F() noexcept {}
+};
+
+constexpr bool dd = ist<D>;
+constexpr bool de = ist<E>;
+constexpr bool df = ist<F>;
 
 //
 //
@@ -1125,5 +1077,10 @@ using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
 
 template <class T, class U> struct is_same : public false_type {};
 template <class T> struct is_same<T, T> : public true_type {};
+
+template <bool B, class T> struct enable_if {};
+template <class T> struct enable_if<true, T> {
+  using type = T;
+};
 
 } // namespace nstd
