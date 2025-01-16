@@ -18,11 +18,9 @@ template <class T> constexpr add_const_t<T>& as_const(T& t) noexcept {
 template <class T> void as_const(const T&&) = delete;
 
 // 20.2.6, declval
-// TODO understand decltype(())
-// todo this doesnt work
+// todo 
 // template <class T> add_rvalue_reference_t<T> declval() noexcept {}
 
-// as unevaluated operand
 // 20.3, Compile-time integer sequences
 template <class T, T... I> struct integer_sequence {
   using value_type = T;

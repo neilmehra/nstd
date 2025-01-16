@@ -755,12 +755,6 @@ template <class T> struct is_unbounded_array : public false_type {};
 template <class T> struct is_unbounded_array<T[]> : public true_type {};
 
 // Operations
-//
-// compiler intrinsics that im allowed to use:
-//__is_destructible
-//__is_trivially_constructible
-//__is_trivially_destructible
-//__is_nothrow_constructible
 
 // constructible
 template <class, class, class...>
@@ -1058,9 +1052,7 @@ template <class T> struct remove_reference<T&> {
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
-// if T is a ref-type, then we follow through with reference collapsing rules
-// rather than it actually being an rvalue ref e.g
-// add_rvalue_reference<T&>::type is T&
+// This follows through w/ ref collapsing rules (add_lvalue_reference<T&>::type is T&)
 template <class T> struct add_lvalue_reference {
   using type = T&;
 };

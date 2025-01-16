@@ -9,10 +9,8 @@
 namespace nstd {
 
 // 20.2.4, forward/move
-// this has to use remove_reference_t<T> because && here is a universal
-// forwarding ref. this causes problems when we pass an lvalue, since when we
-// static_cast it to an rvalue, reference collapsing will cause it to return as
-// an lvalue
+// this has to use remove_reference_t<T>, since assume `t` is of type U&. then (U = T&)&& = T& by ref collapsing rules
+// using remove_reference_t<T> ensures we will return a type that is an rvalue ref
 template <class T>
 constexpr nstd::remove_reference_t<T>&& move(T&& t) noexcept {
   return static_cast<nstd::remove_reference_t<T>&&>(t);
