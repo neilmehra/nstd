@@ -18,6 +18,14 @@ constexpr nstd::remove_reference_t<T>&& move(T&& t) noexcept {
   return static_cast<nstd::remove_reference_t<T>&&>(t);
 }
 
+template <class T>
+constexpr conditional_t<!is_nothrow_move_constructible_v<T> &&
+                            is_copy_constructible_v<T>,
+                        const T&, T&&>
+move_if_noexcept(T& x) noexcept {
+  return nstd::move(x);
+}
+
 // 20.2.2, swap
 template <class T>
 constexpr void swap(T& a,
@@ -29,19 +37,15 @@ constexpr void swap(T& a,
 }
 template <class T, std::size_t N>
 constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(is_nothrow_swappable_v<T>) {
-  for(std::size_t i = 0; i < N; i++) {
+  for (std::size_t i = 0; i < N; i++) {
     nstd::swap(a[i], b[i]);
   }
 }
 
 // 20.2.4, forward/move
-template <class T> constexpr T&& forward(remove_reference_t<T>& t) noexcept {
+template <class T> constexpr T&& forward(remove_reference_t<T>& t) noexcept {}
 
-}
-
-template <class T> constexpr T&& forward(remove_reference_t<T>&& t) noexcept {
-
-}
+template <class T> constexpr T&& forward(remove_reference_t<T>&& t) noexcept {}
 // 20.2.3, exchange
 template <class T, class U = T> constexpr T exchange(T& obj, U&& new_val) {
   T old_val = nstd::move(obj);
