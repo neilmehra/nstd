@@ -996,6 +996,34 @@ constexpr std::size_t b = extent_v<int[], 0>; // 4
 template <class T, class U> struct is_same : public false_type {};
 template <class T> struct is_same<T, T> : public true_type {};
 
+template <class Base> void _base_of_tester(Base* b) {}
+
+template <class, class, class = void>
+struct is_base_of_base : public false_type {};
+template <class Base, class Derived>
+struct is_base_of_base<
+    Base, Derived,
+    void_t<decltype(_base_of_tester<Base>(static_cast<Derived*>(nullptr)))>>
+    : public true_type {};
+
+template <class Base, class Derived>
+struct is_base_of : public is_base_of_base<Base, Derived> {};
+
+struct A {};
+struct B : A {};
+
+constexpr bool ab = is_base_of_v<A, B>;
+constexpr bool ba = is_base_of_v<B, A>;
+
+template <class From, class To> struct is_convertible;
+template <class From, class To> struct is_nothrow_convertible;
+template <class T, class U> struct is_layout_compatible;
+template <class Base, class Derived> struct is_pointer_interconvertible_base_of;
+template <class Fn, class... ArgTypes> struct is_invocable;
+template <class R, class Fn, class... ArgTypes> struct is_invocable_r;
+template <class Fn, class... ArgTypes> struct is_nothrow_invocable;
+template <class R, class Fn, class... ArgTypes> struct is_nothrow_invocable_r;
+
 //
 //
 //
