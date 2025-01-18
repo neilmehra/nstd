@@ -198,6 +198,8 @@ struct basic_common_reference {};
 template <class... T> struct common_reference;
 template <class T> struct underlying_type;
 template <class Fn, class... ArgTypes> struct invoke_result;
+template <class T> struct unwrap_reference;
+template <class T> struct unwrap_ref_decay;
 template <class T> using type_identity_t = typename type_identity<T>::type;
 // TODO
 // template <size_t Len, size_t Align = default - alignment> // see 20.15.7.6
@@ -216,6 +218,10 @@ using common_reference_t = typename common_reference<T...>::type;
 template <class T> using underlying_type_t = typename underlying_type<T>::type;
 template <class Fn, class... ArgTypes>
 using invoke_result_t = typename invoke_result<Fn, ArgTypes...>::type;
+template <class T>
+using unwrap_reference_t = typename unwrap_reference<T>::type;
+template <class T>
+using unwrap_ref_decay_t = typename unwrap_ref_decay<T>::type;
 template <class...> using void_t = void;
 // 20.15.8, logical operator traits
 template <class... B> struct conjunction;
@@ -390,6 +396,7 @@ inline constexpr bool is_nothrow_invocable_v =
 template <class R, class Fn, class... ArgTypes>
 inline constexpr bool is_nothrow_invocable_r_v =
     is_nothrow_invocable_r<R, Fn, ArgTypes...>::value;
+
 // 20.15.8, logical operator traits
 template <class... B>
 inline constexpr bool conjunction_v = conjunction<B...>::value;
@@ -420,7 +427,6 @@ constexpr bool is_constant_evaluated() noexcept;
 //
 //
 // forward declarations
-
 //
 //
 //
@@ -1313,24 +1319,63 @@ template <class T1, class T2, class... R>
 struct common_type<T1, T2, R...>
     : public detail::_common_type_multi<void, T1, T2, R...> {};
 
-using a = common_type_t<int, int, int, int>;
+using a = common_type_t<int, int, int>;
 
-template <class T, class U, template <class> class TQual,
-          template <class> class UQual>
-struct basic_common_reference {};
-template <class... T> struct common_reference;
+// template <class T, class U, template <class> class TQual,
+//           template <class> class UQual>
+// struct basic_common_reference {};
+// template <class... T> struct common_reference;
+
 template <class T> struct underlying_type {
   using type = __underlying_type(T);
 };
-template <class Fn, class... ArgTypes> struct invoke_result;
-template <class T> struct unwrap_reference;
-template <class T> struct unwrap_ref_decay;
-template <class... T>
-using common_reference_t = typename common_reference<T...>::type;
+
+template <class Fn, class... ArgTypes>
+using invoke_result_tester =
+    decltype(std::declval<Fn>()(std::declval<ArgTypes>()...));
+
+template <class, class, class...> struct invoke_result_base {};
+
+template <class Fn, class... ArgTypes>
+struct invoke_result_base<void_t<invoke_result_tester<Fn, ArgTypes...>>, Fn,
+                          ArgTypes...> {
+  using type = invoke_result_tester<Fn, ArgTypes...>;
+};
+
+template <class Fn, class... ArgTypes>
+struct invoke_result : public invoke_result_base<void, Fn, ArgTypes...> {};
+
+template <class T> struct unwrap_reference {
+  using type = T;
+};
+
+template <class T> struct unwrap_reference<std::reference_wrapper<T>> {
+  using type = T&;
+};
+
+template <class T>
+struct unwrap_ref_decay : public unwrap_reference_t<decay_t<T>> {};
+
 template <class...> using void_t = void;
 
-template <class... B> struct conjunction;
-template <class... B> struct disjunction;
-template <class B> struct negation;
+// 0 case
+template <class... B> struct conjunction : public true_type {};
+// 1 case
+template <class B1> struct conjunction<B1> : public B1 {};
+// 1+n case
+template <class B1, class... BN>
+struct conjunction<B1, BN...>
+    : public conditional_t<bool(B1::value), conjunction<BN...>, B1> {};
+
+// 0 case
+template <class... B> struct disjunction : public false_type {};
+// 1 case
+template <class B1> struct disjunction<B1> : public B1 {};
+// 1+n case
+template <class B1, class... BN>
+struct disjunction<B1, BN...>
+    : public conditional_t<bool(B1::value), B1, disjunction<BN...>> {};
+
+template <class B> struct negation : public bool_constant<!bool(B::value)> {};
 
 } // namespace nstd
