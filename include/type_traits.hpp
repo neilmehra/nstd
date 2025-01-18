@@ -1077,139 +1077,260 @@ template <class R, class Fn, class... ArgTypes>
 struct is_nothrow_invocable_r
     : public is_nothrow_invocable_r_base<void, R, Fn, ArgTypes...> {};
 
-struct A {};
-struct B {};
-int foo(int, A, B);
-int bar(int, A, B) noexcept;
-
-auto a = is_nothrow_invocable_r_v<A, decltype(foo), int, A, B>;    // false
-auto b = is_nothrow_invocable_r_v<long, decltype(foo), int, A, B>; // false
-auto c = is_nothrow_invocable_r_v<long, decltype(bar), int, B, A>; // false
-auto d = is_nothrow_invocable_r_v<long, decltype(bar), int, A, B>; // true
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// END
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-
-// 20.15.7.1, const-volatile modifications
-template <class T> struct remove_cv {
-  using type = T;
-};
-template <class T> struct remove_cv<const T> {
-  using type = T;
-};
-template <class T> struct remove_cv<volatile T> {
-  using type = T;
-};
-template <class T> struct remove_cv<const volatile T> {
-  using type = T;
-};
+// 20.15.7.1 cv modification
 template <class T> struct remove_const {
   using type = T;
 };
+
 template <class T> struct remove_const<const T> {
   using type = T;
 };
+
 template <class T> struct remove_volatile {
   using type = T;
 };
+
 template <class T> struct remove_volatile<volatile T> {
   using type = T;
 };
+
+template <class T> struct remove_cv {
+  using type = T;
+};
+
+template <class T> struct remove_cv<const T> {
+  using type = T;
+};
+
+template <class T> struct remove_cv<volatile T> {
+  using type = T;
+};
+
+template <class T> struct remove_cv<const volatile T> {
+  using type = T;
+};
+
 template <class T> struct add_const {
-  using type = const T;
+  using type = T const;
 };
+
 template <class T> struct add_volatile {
-  using type = volatile T;
+  using type = T volatile;
 };
+
 template <class T> struct add_cv {
-  using type = const volatile T;
+  using type = T const volatile;
 };
 
-template <class T> using remove_const_t = typename remove_const<T>::type;
-template <class T> using remove_volatile_t = typename remove_volatile<T>::type;
-template <class T> using remove_cv_t = typename remove_cv<T>::type;
-template <class T> using add_const_t = typename add_const<T>::type;
-template <class T> using add_volatile_t = typename add_volatile<T>::type;
-template <class T> using add_cv_t = typename add_cv<T>::type;
-
-// 20.15.7.2, reference modifications
+// 20.15.7.2 reference modification
 template <class T> struct remove_reference {
   using type = T;
 };
+
 template <class T> struct remove_reference<T&> {
   using type = T;
 };
+
 template <class T> struct remove_reference<T&&> {
   using type = T;
 };
-// This follows through w/ ref collapsing rules (add_lvalue_reference<T&>::type
-// is T&)
+
 template <class T> struct add_lvalue_reference {
   using type = T&;
 };
+
 template <class T> struct add_rvalue_reference {
   using type = T&&;
 };
 
-template <class T>
-using remove_reference_t = typename remove_reference<T>::type;
-template <class T>
-using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
-template <class T>
-using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
+template <class T> struct make_signed {
+  using type = T;
+};
 
-template <class T, class U> struct is_same : public false_type {};
-template <class T> struct is_same<T, T> : public true_type {};
+// 20.15.7.3 sign modification
+template <> struct make_signed<unsigned char> {
+  using type = char;
+};
 
-template <bool B, class T> struct enable_if {};
+template <> struct make_signed<unsigned short> {
+  using type = short;
+};
+
+template <> struct make_signed<unsigned int> {
+  using type = int;
+};
+
+template <> struct make_signed<unsigned long> {
+  using type = long;
+};
+
+template <> struct make_signed<unsigned long long> {
+  using type = long long;
+};
+
+template <class T> struct make_unsigned {
+  using type = T;
+};
+
+template <> struct make_unsigned<char> {
+  using type = unsigned char;
+};
+
+template <> struct make_unsigned<short> {
+  using type = unsigned short;
+};
+
+template <> struct make_unsigned<int> {
+  using type = unsigned int;
+};
+
+template <> struct make_unsigned<long> {
+  using type = unsigned long;
+};
+
+template <> struct make_unsigned<long long> {
+  using type = unsigned long long;
+};
+
+// 20.15.7.4, array modifications
+template <class T> struct remove_extent {
+  using type = T;
+};
+
+template <class T> struct remove_extent<T[]> {
+  using type = T;
+};
+
+template <class T, std::size_t N> struct remove_extent<T[N]> {
+  using type = T;
+};
+
+template <class T> struct remove_all_extents {
+  using type = T;
+};
+
+template <class T>
+struct remove_all_extents<T[]> : public remove_all_extents<T> {};
+
+template <class T, std::size_t N>
+struct remove_all_extents<T[N]> : public remove_all_extents<T[]> {};
+
+// 20.15.7.5, pointer modifications
+template <class T> struct remove_pointer {
+  using type = T;
+};
+
+template <class T> struct remove_pointer<T*> {
+  using type = T;
+};
+
+template <class T> struct add_pointer {
+  using type = T*;
+};
+
+// 20.15.7.6, other transformations
+template <class T> struct type_identity {
+  using type = T;
+};
+
+// TODO
+// template <size_t Len, size_t Align = default - alignment> // see 20.15.7.6
+// struct aligned_storage;
+// template <size_t Len, class... Types> struct aligned_union;
+
+template <class T> struct remove_cvref {
+  using type = remove_cv_t<remove_reference_t<T>>;
+};
+
+template <class U> struct decay_base {
+  using type = conditional<
+      is_array_v<U>, remove_extent_t<U>*,
+      conditional<is_function_v<U>, add_pointer_t<U>, remove_cv_t<U>>>;
+};
+
+template <class T> struct decay {
+  using type = remove_reference_t<T>;
+};
+
+template <bool, class T> struct enable_if {};
 template <class T> struct enable_if<true, T> {
   using type = T;
 };
+
+template <bool, class T, class F> struct conditional {
+  using type = F;
+};
+
+template <class T, class F> struct conditional<true, T, F> {
+  using type = T;
+};
+
+template <class...> struct common_type {};
+template <class T> struct common_type<T> {
+  using type = T;
+};
+
+namespace detail {
+
+template <class T1, class T2>
+using _common_type_test =
+    decltype(false ? std::declval<T1>() : std::declval<T2>());
+
+template <class T1, class T2, class = void> struct _common_type_test_struct {};
+
+template <class T1, class T2>
+struct _common_type_test_struct<T1, T2, void_t<_common_type_test<T1, T2>>>
+    : public decay<_common_type_test<T1, T2>> {};
+
+template <class T1, class T2, class = void>
+struct _common_type_base
+    : public _common_type_test_struct<const remove_reference_t<T1>&,
+                                      const remove_reference_t<T2>&> {};
+
+template <class T1, class T2>
+struct _common_type_base<T1, T2, void_t<_common_type_test<T1, T2>>>
+    : public _common_type_test_struct<T1, T2> {};
+
+} // namespace detail
+
+template <class T1, class T2>
+struct common_type<T1, T2>
+    : public conditional_t<
+          _and_v<is_same_v<T1, decay_t<T1>>, is_same_v<T2, decay_t<T2>>>,
+          detail::_common_type_base<T1, T2>,
+          detail::_common_type_base<decay_t<T1>, decay_t<T2>>> {};
+
+namespace detail {
+
+template <class, class, class, class...> struct _common_type_multi {};
+template <class T1, class T2, class... R>
+struct _common_type_multi<void_t<typename common_type<T1, T2>::type>, T1, T2,
+                          R...> : public common_type<T2, R...> {};
+
+} // namespace detail
+
+template <class T1, class T2, class... R>
+struct common_type<T1, T2, R...>
+    : public detail::_common_type_multi<void, T1, T2, R...> {};
+
+using a = common_type_t<int, int, int, int>;
+
+template <class T, class U, template <class> class TQual,
+          template <class> class UQual>
+struct basic_common_reference {};
+template <class... T> struct common_reference;
+template <class T> struct underlying_type {
+  using type = __underlying_type(T);
+};
+template <class Fn, class... ArgTypes> struct invoke_result;
+template <class T> struct unwrap_reference;
+template <class T> struct unwrap_ref_decay;
+template <class... T>
+using common_reference_t = typename common_reference<T...>::type;
+template <class...> using void_t = void;
+
+template <class... B> struct conjunction;
+template <class... B> struct disjunction;
+template <class B> struct negation;
 
 } // namespace nstd
