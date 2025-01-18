@@ -976,8 +976,6 @@ template <class T, std::size_t N>
 struct rank<T[N]> : public integral_constant<std::size_t, 1 + rank<T>::value> {
 };
 
-constexpr std::size_t a = rank_v<int[1][1][1][1]>; // 4
-
 template <class T, unsigned I>
 struct extent : public integral_constant<std::size_t, 0> {};
 template <class T, std::size_t N>
@@ -988,8 +986,6 @@ template <class T>
 struct extent<T[], 0> : public integral_constant<std::size_t, 0> {};
 template <class T, unsigned I>
 struct extent<T[], I> : public extent<T, I - 1> {};
-
-constexpr std::size_t b = extent_v<int[], 0>; // 4
 
 // 20.15.6
 
@@ -1009,21 +1005,87 @@ struct is_base_of_base<
 template <class Base, class Derived>
 struct is_base_of : public is_base_of_base<Base, Derived> {};
 
+template <class, class, class = void>
+struct is_convertible_base : public false_type {};
+template <class From, class To>
+struct is_convertible_base<
+    From, To,
+    void_t<decltype(void(std::declval<void (&)(To)>()(std::declval<From>())))>>
+    : public true_type {};
+
+template <class From, class To>
+struct is_convertible : public is_convertible_base<From, To> {};
+
+template <class, class, class = void>
+struct is_nothrow_convertible_base : public false_type {};
+template <class From, class To>
+struct is_nothrow_convertible_base<
+    From, To,
+    void_t<std::enable_if_t<noexcept(
+        void(std::declval<void (&)(To) noexcept>()(std::declval<From>())))>>>
+    : public true_type {};
+
+template <class From, class To>
+struct is_nothrow_convertible : public is_nothrow_convertible_base<From, To> {};
+
+template <class T, class U>
+struct is_layout_compatible
+    : public bool_constant<__is_layout_compatible(T, U)> {};
+template <class Base, class Derived>
+struct is_pointer_interconvertible_base_of
+    : public bool_constant<__is_pointer_interconvertible_base_of(Base,
+
+                                                                 Derived)> {};
+
+template <class, class, class...>
+struct is_invocable_base : public false_type {};
+template <class Fn, class... ArgTypes>
+struct is_invocable_base<
+    void_t<decltype(std::declval<Fn>()(std::declval<ArgTypes>()...))>, Fn,
+    ArgTypes...> : true_type {};
+
+template <class Fn, class... ArgTypes>
+struct is_invocable : public is_invocable_base<void, Fn, ArgTypes...> {};
+
+// can we invoke Fn(ArgTypes...) and implicitly convert -> R?
+template <class, class, class, class...>
+struct is_invocable_r_base : public false_type {};
+template <class R, class Fn, class... ArgTypes>
+struct is_invocable_r_base<
+    void_t<std::enable_if_t<_and_v<
+        is_invocable_v<Fn, ArgTypes...>,
+        is_convertible_v<
+            decltype(std::declval<Fn>()(std::declval<ArgTypes>()...)), R>>>>,
+    R, Fn, ArgTypes...> : public true_type {};
+
+template <class R, class Fn, class... ArgTypes>
+struct is_invocable_r : public is_invocable_r_base<void, R, Fn, ArgTypes...> {};
+
+// can we invoke Fn(ArgTypes...) (noexcept) and implicitly convert -> R?
+template <class, class, class, class...>
+struct is_nothrow_invocable_r_base : public false_type {};
+template <class R, class Fn, class... ArgTypes>
+struct is_nothrow_invocable_r_base<
+    void_t<std::enable_if_t<
+        _and_v<is_nothrow_invocable_v<Fn, ArgTypes...>,
+               is_convertible_v<std::enable_if_t<noexcept(std::declval<Fn>()(
+                                    std::declval<ArgTypes>()...))>,
+                                R>>>>,
+    R, Fn, ArgTypes...> : public true_type {};
+
+template <class R, class Fn, class... ArgTypes>
+struct is_nothrow_invocable_r
+    : public is_nothrow_invocable_r_base<void, R, Fn, ArgTypes...> {};
+
 struct A {};
-struct B : A {};
+struct B {};
+int foo(int, A, B);
+int bar(int, A, B) noexcept;
 
-constexpr bool ab = is_base_of_v<A, B>;
-constexpr bool ba = is_base_of_v<B, A>;
-
-template <class From, class To> struct is_convertible;
-template <class From, class To> struct is_nothrow_convertible;
-template <class T, class U> struct is_layout_compatible;
-template <class Base, class Derived> struct is_pointer_interconvertible_base_of;
-template <class Fn, class... ArgTypes> struct is_invocable;
-template <class R, class Fn, class... ArgTypes> struct is_invocable_r;
-template <class Fn, class... ArgTypes> struct is_nothrow_invocable;
-template <class R, class Fn, class... ArgTypes> struct is_nothrow_invocable_r;
-
+auto a = is_nothrow_invocable_r_v<A, decltype(foo), int, A, B>;    // false
+auto b = is_nothrow_invocable_r_v<long, decltype(foo), int, A, B>; // false
+auto c = is_nothrow_invocable_r_v<long, decltype(bar), int, B, A>; // false
+auto d = is_nothrow_invocable_r_v<long, decltype(bar), int, A, B>; // true
 //
 //
 //
