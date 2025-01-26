@@ -1,9 +1,11 @@
 #pragma once
 
+#include "type_traits.hpp"
+
 namespace nstd {
-// this is GCC impl, see if clang has same intrinsic function for declval?
-template <typename T> auto declval() noexcept -> decltype(__declval<T>(0)) {
-  static_assert(false, "declval() must not be used!");
-  return __declval<T>(0);
+// https://stackoverflow.com/questions/64060929/why-does-the-implementation-of-declval-in-libstdc-v3-look-so-complicated
+template <class T>
+typename nstd::add_rvalue_reference<T>::type declval() noexcept {
+  static_assert(false);
 }
 } // namespace nstd

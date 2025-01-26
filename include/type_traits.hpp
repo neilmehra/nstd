@@ -1,6 +1,5 @@
 #pragma once
 
-#include "declval.hpp"
 #include <cstddef>
 #include <type_traits>
 
@@ -893,7 +892,7 @@ struct is_nothrow_constructible_base : public false_type {};
 
 template <class T, class... Args>
 struct is_nothrow_constructible_base<
-    void_t<nstd::enable_if_t<noexcept(T(nstd::declval<Args>()...))>>, T,
+    void_t<nstd::enable_if_t<noexcept(T(std::declval<Args>()...))>>, T,
     Args...> : public true_type {};
 
 template <class T, class... Args>
@@ -1318,13 +1317,6 @@ struct _common_type_multi<void_t<typename common_type<T1, T2>::type>, T1, T2,
 template <class T1, class T2, class... R>
 struct common_type<T1, T2, R...>
     : public detail::_common_type_multi<void, T1, T2, R...> {};
-
-using a = common_type_t<int, int, int>;
-
-// template <class T, class U, template <class> class TQual,
-//           template <class> class UQual>
-// struct basic_common_reference {};
-// template <class... T> struct common_reference;
 
 template <class T> struct underlying_type {
   using type = __underlying_type(T);

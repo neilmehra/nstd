@@ -41,9 +41,14 @@ constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(is_nothrow_swappable_v<T>) {
 }
 
 // 20.2.4, forward/move
-template <class T> constexpr T&& forward(remove_reference_t<T>& t) noexcept {}
+// https://stackoverflow.com/questions/38344332/why-does-stdforward-have-two-overloads
+template <class T> constexpr T&& forward(remove_reference_t<T>& t) noexcept {
+  return static_cast<T&&>(t);
+}
 
-template <class T> constexpr T&& forward(remove_reference_t<T>&& t) noexcept {}
+template <class T> constexpr T&& forward(remove_reference_t<T>&& t) noexcept {
+  return static_cast<T&&>(t);
+}
 // 20.2.3, exchange
 template <class T, class U = T> constexpr T exchange(T& obj, U&& new_val) {
   T old_val = nstd::move(obj);
