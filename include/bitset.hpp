@@ -1,13 +1,10 @@
 #pragma once
 
 #include <algorithm>
-#include <bit>
 #include <cstddef>
 #include <ios>
 #include <iosfwd>
-#include <iostream>
 #include <limits>
-#include <memory>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -42,7 +39,6 @@ public:
     std::size_t idx = 0;
     while (idx < std::min(N, n == str_t::npos ? str.size() : n)) {
       if (str[pos + idx] != zero && str[pos + idx] != one) {
-        std::cout << str[pos + idx] << std::endl;
         throw std::invalid_argument{"non-0/1 char in str"};
       } else if (str[pos + idx] == one) {
         set(pos + idx);
@@ -114,7 +110,12 @@ public:
 
   bitset<N>& reset() noexcept { return reset_unchecked(); }
 
-  bitset<N>& reset(std::size_t pos) { return reset_unchecked(pos); }
+  bitset<N>& reset(std::size_t pos) { 
+    if(pos >= N) {
+      throw std::out_of_range{"Attempted to reset bit out of range"};
+    }
+    return reset_unchecked(pos); 
+  }
 
   bitset<N> operator~() const noexcept { return this->flip(); }
 
@@ -232,7 +233,7 @@ public:
   friend std::basic_istream<charT, traits>&
   operator>>(std::basic_istream<charT, traits>& is, bitset<N>& x);
 
-  // private:
+  private:
   using block_t = std::size_t;
   constexpr static std::size_t block_t_bitsize = 8 * sizeof(block_t);
   constexpr static std::size_t num_blocks =
