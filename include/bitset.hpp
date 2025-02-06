@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <ios>
 #include <iosfwd>
+#include <iostream>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 
@@ -26,7 +28,6 @@ public:
   template <class charT = char, class traits = std::char_traits<charT>,
             class Allocator = std::allocator<charT>>
 
-  // TODO this is wrong, should be other way around
   explicit bitset(
       const std::basic_string<charT, traits, Allocator>& str,
       typename std::basic_string<charT, traits, Allocator>::size_type pos = 0,
@@ -34,23 +35,19 @@ public:
           std::basic_string<charT, traits, Allocator>::npos,
       charT zero = charT('0'), charT one = charT('1')) {
 
-    if (!str.size())
-      return;
+    using str_t = std::basic_string<charT, traits, Allocator>;
+    if (pos > str.size())
+      throw std::out_of_range{"string starting index out of range"};
 
-    std::size_t block_idx = 0;
-    block_t mask = 0;
-
-    for (std::size_t i = str.size() - 1; i >= 0; i--) {
-      std::size_t bit_idx = i % block_t_bitsize;
-      if (str[i] == one) {
-        mask += static_cast<block_t>(1) << bit_idx;
+    std::size_t idx = 0;
+    while (idx < std::min(N, n == str_t::npos ? str.size() : n)) {
+      if (str[pos + idx] != zero && str[pos + idx] != one) {
+        std::cout << str[pos + idx] << std::endl;
+        throw std::invalid_argument{"non-0/1 char in str"};
+      } else if (str[pos + idx] == one) {
+        set(pos + idx);
       }
-
-      if (!bit_idx) {
-        data[i] = mask;
-        mask = 0;
-        block_idx++;
-      }
+      idx++;
     }
   }
 
@@ -59,27 +56,31 @@ public:
     for (std::size_t i = 0; i < num_blocks; i++) {
       data[i] &= rhs.data[i];
     }
+    return *this;
   };
 
   bitset<N>& operator|=(const bitset<N>& rhs) noexcept {
     for (std::size_t i = 0; i < num_blocks; i++) {
       data[i] |= rhs.data[i];
     }
+    return *this;
   };
 
   bitset<N>& operator^=(const bitset<N>& rhs) noexcept {
     for (std::size_t i = 0; i < num_blocks; i++) {
       data[i] ^= rhs.data[i];
     }
+    return *this;
   };
 
   bitset<N>& operator<<=(std::size_t pos) noexcept {
-    for (std::size_t i = N - 1; i >= pos; i--) {
+    namespace sv = std::ranges::views;
+    for (std::size_t i : sv::iota(pos, N) | sv::reverse) {
       set_unchecked(i, (*this)[i - pos]);
     }
     for (std::size_t i = 0; i < pos; i++) {
-      if (i + block_t_bitsize < pos) {
-        data[i] = 0;
+      if (i % block_t_bitsize == 0 && i + block_t_bitsize < pos) {
+        data[i / block_t_bitsize] = 0;
         i += block_t_bitsize - 1;
       } else {
         reset_unchecked(i);
@@ -93,8 +94,8 @@ public:
       set_unchecked(i, (*this)[i + pos]);
     }
     for (std::size_t i = N - pos; i < N; i++) {
-      if (i < pos + block_t_bitsize) {
-        data[i] = 0;
+      if (i % block_t_bitsize == 0) {
+        data[i / block_t_bitsize] = 0;
         i += block_t_bitsize - 1;
       } else {
         reset_unchecked(i);
@@ -106,7 +107,7 @@ public:
   bitset<N>& set() noexcept { return set_unchecked(); };
 
   bitset<N>& set(std::size_t pos, bool val = true) {
-    if (pos > N)
+    if (pos >= N)
       throw std::out_of_range{"Attempted to set bit out of range"};
     return set_unchecked(pos, val);
   }
@@ -132,14 +133,14 @@ public:
   }
 
   // element access
-  constexpr bool operator[](size_t pos) const {
+  constexpr bool operator[](std::size_t pos) const {
     std::size_t block_idx = pos / block_t_bitsize;
     std::size_t bit = pos - (block_t_bitsize * block_idx);
     return (data[block_idx] & (static_cast<block_t>(1) << bit)) != 0;
   }
 
   // for b[i];
-  reference operator[](size_t pos) {
+  reference operator[](std::size_t pos) {
     std::size_t block_idx = pos / block_t_bitsize;
     std::size_t bit = pos - (block_t_bitsize * block_idx);
     return reference{data[block_idx], bit};
@@ -157,20 +158,20 @@ public:
 
   unsigned long long to_ullong() const { return to_ulong(); }
 
-  // TODO this is wrong, should be other way around
   template <class charT = char, class traits = std::char_traits<charT>,
             class Allocator = std::allocator<charT>>
   std::basic_string<charT, traits, Allocator>
   to_string(charT zero = charT('0'), charT one = charT('1')) const {
+    std::basic_string<charT, traits, Allocator> ret(N, zero);
 
-    std::basic_string<charT, traits, Allocator> ret(N);
-    for (std::size_t i = N - 1; i >= 0; i--) {
-      ret[i] = test(i) ? one : zero;
+    for (std::size_t i = 0; i < N; i++) {
+      if (test(i))
+        ret[N - i - 1] = one;
     }
     return ret;
   }
 
-  size_t count() const noexcept {
+  std::size_t count() const noexcept {
     std::size_t sum = 0;
     for (std::size_t i = 0; i < num_blocks; i++) {
       sum += std::popcount(data[i]);
@@ -178,7 +179,7 @@ public:
     return sum;
   }
 
-  constexpr size_t size() const noexcept { return N; }
+  constexpr std::size_t size() const noexcept { return N; }
 
   bool operator==(const bitset<N>& rhs) const noexcept {
     for (std::size_t i = 0; i < num_blocks; i++) {
@@ -188,7 +189,7 @@ public:
     return true;
   }
 
-  bool test(size_t pos) const {
+  bool test(std::size_t pos) const {
     if (pos >= N)
       throw std::out_of_range{"Attempted to test bit out of range"};
     return (*this)[pos];
@@ -215,13 +216,13 @@ public:
 
   bool none() const noexcept { return !any(); }
 
-  bitset<N> operator<<(size_t pos) const noexcept {
+  bitset<N> operator<<(std::size_t pos) const noexcept {
     auto ret = *this;
     ret <<= pos;
     return ret;
   }
 
-  bitset<N> operator>>(size_t pos) const noexcept {
+  bitset<N> operator>>(std::size_t pos) const noexcept {
     auto ret = *this;
     ret >>= pos;
     return ret;
@@ -231,7 +232,7 @@ public:
   friend std::basic_istream<charT, traits>&
   operator>>(std::basic_istream<charT, traits>& is, bitset<N>& x);
 
-private:
+  // private:
   using block_t = std::size_t;
   constexpr static std::size_t block_t_bitsize = 8 * sizeof(block_t);
   constexpr static std::size_t num_blocks =
@@ -296,12 +297,13 @@ template <std::size_t N> bitset<N>& bitset<N>::set_unchecked() {
   for (std::size_t i = 0; i < num_blocks; i++) {
     data[i] |= mask;
   }
+  return *this;
 }
 
 template <std::size_t N>
 bitset<N>& bitset<N>::set_unchecked(std::size_t pos, bool val) {
   if (!val)
-    return reset(pos);
+    return reset_unchecked(pos);
   std::size_t block_idx = pos / block_t_bitsize;
   std::size_t bit = pos - (block_t_bitsize * block_idx);
   data[block_idx] |= (static_cast<block_t>(1) << bit);
@@ -334,7 +336,7 @@ bitset<N> operator&(const bitset<N>& lhs, const bitset<N>& rhs) noexcept {
 template <std::size_t N>
 bitset<N> operator|(const bitset<N>& lhs, const bitset<N>& rhs) noexcept {
   bitset<N> res(lhs);
-  lhs |= rhs;
+  res |= rhs;
   return res;
 }
 
@@ -354,7 +356,7 @@ operator>>(std::basic_istream<charT, traits>& is, bitset<N>& x) {
   auto zero = is.widen('0'), one = is.widen('1'), ws = is.widen(' ');
 
   std::size_t idx = 0;
-  std::basic_string<charT, traits> str{N};
+  std::basic_string<charT, traits> str(N, zero);
   charT test_c;
 
   while (is >> test_c && test_c == ws) {
