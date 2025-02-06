@@ -266,21 +266,23 @@ public:
     } else {
       block &= std::numeric_limits<block_t>::max() ^ bit;
     }
+    return *this;
   };
 
   reference& operator=(const reference& rhs) noexcept {
     block = rhs.block;
     bit_idx = rhs.bit_idx;
+    return *this;
   };
 
-  bool operator~() const noexcept { return static_cast<bool>(flip()); }
+  bool operator~() const noexcept { return !static_cast<bool>(*this); }
 
   operator bool() const noexcept {
     return (block & (static_cast<block_t>(1) << bit_idx)) != 0;
   };
 
   reference& flip() noexcept {
-    *this = !static_cast<bool>(*this);
+    *this = ~(*this);
     return *this;
   };
 

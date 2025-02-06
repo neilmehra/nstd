@@ -147,6 +147,80 @@ TEST(BitsetTest, OutOfRange) {
   EXPECT_THROW(b.test(8), std::out_of_range);
 }
 
+using b4_t = nstd::bitset<4>;
+
+TEST(BitsetTest, RefGet) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  EXPECT_EQ(static_cast<bool>(ref), true);
+}
+
+TEST(BitsetTest, RefAssign) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  ASSERT_EQ(static_cast<bool>(ref), true);
+  ref = false;
+  ASSERT_EQ(static_cast<bool>(ref), false);
+  EXPECT_EQ(b[0], false);
+}
+
+TEST(BitsetTest, RefCopyCtor) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  b4_t::reference ref2 = ref;
+  ASSERT_TRUE(static_cast<bool>(ref));
+  EXPECT_TRUE(static_cast<bool>(ref2));
+  ref = false;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_FALSE(static_cast<bool>(ref));
+  ref = true;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_TRUE(static_cast<bool>(ref));
+  b[0] = false;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_FALSE(static_cast<bool>(ref));
+}
+
+TEST(BitsetTest, RefCopyAssign) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  b4_t::reference ref2 = b[1];
+  ref2 = ref;
+  ASSERT_TRUE(static_cast<bool>(ref));
+  EXPECT_TRUE(static_cast<bool>(ref2));
+  ref = false;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_FALSE(static_cast<bool>(ref));
+  ref = true;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_TRUE(static_cast<bool>(ref));
+  b[0] = false;
+  EXPECT_EQ(static_cast<bool>(ref), static_cast<bool>(ref2));
+  EXPECT_EQ(static_cast<bool>(ref), b[0]);
+  EXPECT_FALSE(static_cast<bool>(ref));
+}
+
+
+TEST(BitsetTest, RefNot) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  EXPECT_FALSE(~ref);
+}
+
+TEST(BitsetTest, RefFlip) {
+  b4_t b{1};
+  b4_t::reference ref = b[0];
+  EXPECT_FALSE(static_cast<bool>(ref.flip()));
+  EXPECT_FALSE(static_cast<bool>(ref));
+  EXPECT_FALSE(b[0]);
+}
+
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
