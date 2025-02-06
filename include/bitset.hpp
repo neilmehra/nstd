@@ -74,49 +74,46 @@ public:
   };
 
   bitset<N>& operator<<=(std::size_t pos) noexcept {
-    for(std::size_t i = N - 1; i >= pos; i--) {
-      set(pos, )
+    for (std::size_t i = N - 1; i >= pos; i--) {
+      set_impl(i, (*this)[i - pos]);
     }
-    for(std::size_t i = 0; i < N; i++) {
-      if(i < pos) {
+    for (std::size_t i = 0; i < pos; i++) {
+      if (i + block_t_bitsize < pos) {
         data[i] = 0;
+        i += block_t_bitsize - 1;
       } else {
-        data[i] = data[i - pos];
+        reset_impl(i);
       }
     }
+    return *this;
   }
+
   bitset<N>& operator>>=(std::size_t pos) noexcept {
+    for (std::size_t i = 0; i + pos < N; i++) {
+      set_impl(i, (*this)[i + pos]);
+    }
+    for (std::size_t i = N - pos; i < N; i++) {
+      if (i < pos + block_t_bitsize) {
+        data[i] = 0;
+        i += block_t_bitsize - 1;
+      } else {
+        reset_impl(i);
+      }
+    }
+    return *this;
   };
 
-  bitset<N>& set() noexcept {
-    block_t mask = std::numeric_limits<block_t>::max();
-    for (std::size_t i = 0; i < num_blocks; i++) {
-      data[i] |= mask;
-    }
-  };
+  bitset<N>& set() noexcept { return set_impl(); };
 
   bitset<N>& set(std::size_t pos, bool val = true) {
-    if(!val) return reset(pos);
-    std::size_t block_idx = pos / block_t_bitsize;
-    std::size_t bit = pos - (block_t_bitsize * block_idx);
-    data[block_idx] |= (static_cast<block_t>(1) << bit);
-    return *this;
+    if (pos > N)
+      throw std::out_of_range{"Attempted to set bit out of range"};
+    return set_impl(pos, val);
   }
 
-  bitset<N>& reset() noexcept {
-    for (std::size_t i = 0; i < num_blocks; i++) {
-      data[i] &= 0;
-    }
-    return *this;
-  }
+  bitset<N>& reset() noexcept { return reset_impl(); }
 
-  bitset<N>& reset(std::size_t pos) {
-    std::size_t block_idx = pos / block_t_bitsize;
-    std::size_t bit = pos - (block_t_bitsize * block_idx);
-    block_t mask = std::numeric_limits<block_t>::max();
-    data[block_idx] &= mask ^ (static_cast<block_t>(1) << bit);
-    return *this;
-  }
+  bitset<N>& reset(std::size_t pos) { return reset_impl(pos); }
 
   bitset<N> operator~() const noexcept { return this->flip(); }
 
@@ -170,15 +167,43 @@ public:
   }
 
   bool test(size_t pos) const {
-    if(pos >= N) throw std::out_of_range{"Bit position out of range"};
+    if (pos >= N)
+      throw std::out_of_range{"Attempted to test bit out of range"};
     return (*this)[pos];
   }
 
-  bool all() const noexcept;
-  bool any() const noexcept;
-  bool none() const noexcept;
-  bitset<N> operator<<(size_t pos) const noexcept;
-  bitset<N> operator>>(size_t pos) const noexcept;
+  bool all() const noexcept {
+    block_t mask = std::numeric_limits<block_t>::max();
+    for (std::size_t i = 0; i < num_blocks; i++) {
+      if (mask != (mask & data[i]))
+        return false;
+    }
+    return true;
+  }
+
+  bool any() const noexcept {
+    block_t mask = 0;
+    for (std::size_t i = 0; i < num_blocks; i++) {
+      mask |= data[i];
+      if (mask)
+        return true;
+    }
+    return false;
+  }
+
+  bool none() const noexcept { return !any(); }
+
+  bitset<N> operator<<(size_t pos) const noexcept {
+    auto ret = *this;
+    ret <<= pos;
+    return ret;
+  }
+
+  bitset<N> operator>>(size_t pos) const noexcept {
+    auto ret = *this;
+    ret >>= pos;
+    return ret;
+  }
 
 private:
   using block_t = std::size_t;
@@ -187,6 +212,38 @@ private:
       (N + block_t_bitsize - 1) / block_t_bitsize;
 
   block_t data[num_blocks]{};
+
+  // need a non-noexcept impl to reuse in bitshift operators
+  bitset<N>& set_impl() {
+    block_t mask = std::numeric_limits<block_t>::max();
+    for (std::size_t i = 0; i < num_blocks; i++) {
+      data[i] |= mask;
+    }
+  }
+
+  bitset<N>& set_impl(std::size_t pos, bool val = true) {
+    if (!val)
+      return reset(pos);
+    std::size_t block_idx = pos / block_t_bitsize;
+    std::size_t bit = pos - (block_t_bitsize * block_idx);
+    data[block_idx] |= (static_cast<block_t>(1) << bit);
+    return *this;
+  }
+
+  bitset<N>& reset_impl() noexcept {
+    for (std::size_t i = 0; i < num_blocks; i++) {
+      data[i] &= 0;
+    }
+    return *this;
+  }
+
+  bitset<N>& reset_impl(std::size_t pos) {
+    std::size_t block_idx = pos / block_t_bitsize;
+    std::size_t bit = pos - (block_t_bitsize * block_idx);
+    block_t mask = std::numeric_limits<block_t>::max();
+    data[block_idx] &= mask ^ (static_cast<block_t>(1) << bit);
+    return *this;
+  }
 };
 
 template <class T> struct hash;
