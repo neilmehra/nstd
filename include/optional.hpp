@@ -2,8 +2,20 @@
 
 #include "move.hpp"
 #include "utility.hpp"
+#include <cstddef>
 #include <exception>
 #include <type_traits>
+#include <vector>
+
+
+struct a {
+  int* ptr;
+  std::size_t sz;
+  std::size_t cap;
+  std::allocator<int> a;
+};
+
+constexpr auto lmao = sizeof(a);
 
 namespace nstd {
 
