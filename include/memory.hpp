@@ -1,6 +1,7 @@
 #pragma once
 
 #include "type_traits.hpp"
+#include <atomic>
 #include <ostream>
 #include <tuple>
 
@@ -370,5 +371,86 @@ template <class T, class D>
 void swap(unique_ptr<T[], D>& lhs, unique_ptr<T[], D>& rhs) {
   lhs.swap(rhs);
 }
+
+template <class T> class shared_ptr {
+private:
+  struct control_block {
+    T* obj;
+    void* deleter;
+    void* allocator;
+    std::atomic<std::size_t> strong_cnt;
+    std::atomic<std::size_t> weak_cnt;
+  };
+
+public:
+  using element_type = remove_extent_t<T>;
+  // using weak_type = weak_ptr<T>
+
+  constexpr shared_ptr() noexcept;
+
+  constexpr shared_ptr(std::nullptr_t) noexcept;
+
+  template <class U> shared_ptr(U* p) noexcept;
+
+  template <class Y, class Deleter> shared_ptr(Y* ptr, Deleter d);
+
+  template <class Deleter> shared_ptr(std::nullptr_t ptr, Deleter d);
+
+  template <class Y, class Deleter, class Alloc>
+  shared_ptr(Y* ptr, Deleter d, Alloc alloc);
+
+  template <class Deleter, class Alloc>
+  shared_ptr(std::nullptr_t ptr, Deleter d, Alloc alloc);
+
+  template <class Y>
+  shared_ptr(const shared_ptr<Y>& r, element_type* ptr) noexcept;
+
+  template <class Y> shared_ptr(shared_ptr<Y>&& r, element_type* ptr) noexcept;
+
+  shared_ptr(const shared_ptr& r) noexcept;
+
+  template <class Y> shared_ptr(const shared_ptr<Y>& r) noexcept;
+
+  shared_ptr(shared_ptr&& r) noexcept;
+
+  template <class Y> shared_ptr(shared_ptr<Y>&& r) noexcept;
+
+  // template< class Y >
+  // explicit shared_ptr( const std::weak_ptr<Y>& r );
+
+  template <class Y, class Deleter> shared_ptr(unique_ptr<Y, Deleter>&& r);
+
+  shared_ptr& operator=(const shared_ptr& r) noexcept;
+
+  template <class Y> shared_ptr& operator=(const shared_ptr<Y>& r) noexcept;
+
+  shared_ptr& operator=(shared_ptr&& r) noexcept;
+
+  template <class Y> shared_ptr& operator=(shared_ptr<Y>&& r) noexcept;
+
+  template <class Y, class Deleter>
+  shared_ptr& operator=(unique_ptr<Y, Deleter>&& r);
+
+  void reset() noexcept;
+
+  template <class Y> void reset(Y* ptr);
+
+  template <class Y, class Deleter> void reset(Y* ptr, Deleter d);
+
+  template <class Y, class Deleter, class Alloc>
+  void reset(Y* ptr, Deleter d, Alloc alloc);
+
+  void swap(shared_ptr& r) noexcept;
+
+  element_type* get() const noexcept;
+
+  element_type& operator*() const noexcept;
+  element_type* operator->() const noexcept;
+
+  element_type& operator[](std::size_t idx) const noexcept;
+
+private:
+  control_block* block;
+};
 
 } // namespace nstd
